@@ -6,6 +6,17 @@ import Spinner from '../ui/Spinner'
 
 const STEPS = ['Ingreso', 'Gastos base', 'Distribución']
 
+// Suma los gastos activos por tipo de cuenta
+function calcSuggested(expenses) {
+  const sum = { fixedExpenses: 0, savings: 0, dailySpending: 0 }
+  expenses.forEach((e) => {
+    if (e.isActive && e.amount > 0 && sum[e.accountType] !== undefined) {
+      sum[e.accountType] += e.amount
+    }
+  })
+  return sum
+}
+
 export default function Onboarding() {
   const { user, refreshUserData } = useAuth()
   const [step, setStep] = useState(0)
@@ -31,6 +42,17 @@ export default function Onboarding() {
 
   const removeExpense = (i) => setExpenses(expenses.filter((_, idx) => idx !== i))
 
+  // Al pasar al step 2, precalcula sugerencias desde los gastos base
+  const goToDistribution = () => {
+    const suggested = calcSuggested(expenses)
+    setBudget({
+      fixedExpenses: suggested.fixedExpenses || '',
+      savings: suggested.savings || '',
+      dailySpending: suggested.dailySpending || '',
+    })
+    setStep(2)
+  }
+
   const finish = async () => {
     setLoading(true)
     try {
@@ -52,6 +74,8 @@ export default function Onboarding() {
       setLoading(false)
     }
   }
+
+  const suggested = calcSuggested(expenses)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center p-4">
@@ -108,7 +132,22 @@ export default function Onboarding() {
             <div>
               <h2 className="text-xl font-bold text-slate-800 mb-2">Tus gastos recurrentes</h2>
               <p className="text-slate-500 mb-4">Edita, activa/desactiva o elimina según tu situación real.</p>
-              <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+
+              {/* Preview of suggested distribution */}
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {[
+                  { key: 'fixedExpenses', label: 'G. fijos', icon: '🏠' },
+                  { key: 'savings', label: 'Ahorro', icon: '🏦' },
+                  { key: 'dailySpending', label: 'G. diario', icon: '🛒' },
+                ].map(({ key, label, icon }) => (
+                  <div key={key} className="bg-slate-50 rounded-xl p-3 text-center border border-gray-100">
+                    <p className="text-xs text-slate-400 mb-1">{icon} {label}</p>
+                    <p className="font-bold text-slate-700 text-sm">{formatCOP(suggested[key])}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
                 {expenses.map((exp, i) => (
                   <div key={i} className="flex gap-2 items-center p-3 border border-gray-100 rounded-xl hover:bg-gray-50">
                     <input
@@ -121,9 +160,18 @@ export default function Onboarding() {
                       type="text"
                       value={exp.name}
                       onChange={(e) => updateExpense(i, 'name', e.target.value)}
-                      className="flex-1 border-0 bg-transparent focus:outline-none font-medium text-slate-700"
+                      className="flex-1 border-0 bg-transparent focus:outline-none font-medium text-slate-700 text-sm"
                       placeholder="Nombre del gasto"
                     />
+                    <select
+                      value={exp.accountType}
+                      onChange={(e) => updateExpense(i, 'accountType', e.target.value)}
+                      className="border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 flex-shrink-0"
+                    >
+                      <option value="fixedExpenses">G. fijos</option>
+                      <option value="savings">Ahorro</option>
+                      <option value="dailySpending">G. diario</option>
+                    </select>
                     <div className="relative flex-shrink-0">
                       <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
                       <input
@@ -150,34 +198,56 @@ export default function Onboarding() {
           {/* Step 2: Budget distribution */}
           {step === 2 && (
             <div>
-              <h2 className="text-xl font-bold text-slate-800 mb-2">Distribuye tu ingreso</h2>
-              <p className="text-slate-500 mb-1">Ingreso total: <span className="font-semibold text-emerald-600">{formatCOP(incomeNum)}</span></p>
-              <p className={`text-sm mb-6 font-medium ${remaining < 0 ? 'text-red-500' : 'text-slate-400'}`}>
+              <h2 className="text-xl font-bold text-slate-800 mb-1">Distribuye tu ingreso</h2>
+              <p className="text-slate-500 text-sm mb-1">
+                Ingreso: <span className="font-semibold text-emerald-600">{formatCOP(incomeNum)}</span>
+              </p>
+              <p className={`text-sm mb-5 font-medium ${remaining < 0 ? 'text-red-500' : remaining === 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
                 Sin asignar: {formatCOP(remaining)}
               </p>
+
               <div className="space-y-4">
                 {[
-                  { key: 'fixedExpenses', label: 'Gastos fijos', icon: '🏠', color: 'blue' },
-                  { key: 'savings', label: 'Ahorro', icon: '🏦', color: 'emerald' },
-                  { key: 'dailySpending', label: 'Gasto diario', icon: '🛒', color: 'orange' },
-                ].map(({ key, label, icon, color }) => (
-                  <div key={key}>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {icon} {label}
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">$</span>
-                      <input
-                        type="number"
-                        min="0"
-                        value={budget[key]}
-                        onChange={(e) => setBudget({ ...budget, [key]: e.target.value })}
-                        className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                        placeholder="0"
-                      />
+                  { key: 'fixedExpenses', label: 'Gastos fijos', icon: '🏠', sugKey: 'fixedExpenses' },
+                  { key: 'savings', label: 'Ahorro', icon: '🏦', sugKey: 'savings' },
+                  { key: 'dailySpending', label: 'Gasto diario', icon: '🛒', sugKey: 'dailySpending' },
+                ].map(({ key, label, icon, sugKey }) => {
+                  const sug = suggested[sugKey]
+                  const pct = incomeNum > 0 ? Math.round((sug / incomeNum) * 100) : 0
+                  return (
+                    <div key={key}>
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="text-sm font-medium text-gray-700">{icon} {label}</label>
+                        {sug > 0 && (
+                          <span className="text-xs text-slate-400">
+                            Sugerido: <span className="font-semibold text-slate-600">{formatCOP(sug)}</span>
+                            <span className="ml-1 text-emerald-600">({pct}%)</span>
+                          </span>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={budget[key]}
+                          onChange={(e) => setBudget({ ...budget, [key]: e.target.value })}
+                          className="w-full pl-8 pr-28 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          placeholder="0"
+                        />
+                        {sug > 0 && String(budget[key]) !== String(sug) && (
+                          <button
+                            type="button"
+                            onClick={() => setBudget({ ...budget, [key]: sug })}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-emerald-600 hover:text-emerald-700 font-medium bg-emerald-50 px-2 py-1 rounded-lg"
+                          >
+                            Usar sugerido
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}
@@ -190,15 +260,26 @@ export default function Onboarding() {
               </button>
             ) : <div />}
 
-            {step < STEPS.length - 1 ? (
+            {step === 0 && (
               <button
-                onClick={() => setStep(step + 1)}
-                disabled={step === 0 && !incomeNum}
+                onClick={() => setStep(1)}
+                disabled={!incomeNum}
                 className="px-8 py-2.5 bg-emerald-500 text-white font-semibold rounded-xl hover:bg-emerald-600 transition disabled:opacity-40"
               >
                 Continuar
               </button>
-            ) : (
+            )}
+
+            {step === 1 && (
+              <button
+                onClick={goToDistribution}
+                className="px-8 py-2.5 bg-emerald-500 text-white font-semibold rounded-xl hover:bg-emerald-600 transition"
+              >
+                Continuar
+              </button>
+            )}
+
+            {step === 2 && (
               <button
                 onClick={finish}
                 disabled={loading || remaining < 0}

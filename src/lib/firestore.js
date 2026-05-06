@@ -9,7 +9,6 @@ import {
   deleteDoc,
   query,
   where,
-  orderBy,
   serverTimestamp,
 } from 'firebase/firestore'
 import { db } from './firebase'
@@ -80,8 +79,10 @@ export async function setMonthlyIncome(uid, month, year, data) {
 }
 
 export async function getAllMonthlyIncomes(uid) {
-  const snap = await getDocs(query(collection(db, 'users', uid, 'monthlyIncome'), orderBy('year', 'desc'), orderBy('month', 'desc')))
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+  const snap = await getDocs(collection(db, 'users', uid, 'monthlyIncome'))
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => b.year !== a.year ? b.year - a.year : b.month - a.month)
 }
 
 // ── Monthly Budget ──────────────────────────────────────
@@ -107,11 +108,12 @@ export async function getTransactions(uid, month, year) {
     query(
       collection(db, 'users', uid, 'transactions'),
       where('month', '==', month),
-      where('year', '==', year),
-      orderBy('date', 'desc')
+      where('year', '==', year)
     )
   )
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => (b.date > a.date ? 1 : -1))
 }
 
 export async function addTransaction(uid, data) {
@@ -144,10 +146,10 @@ export async function setMonthlySummary(uid, month, year, data) {
 }
 
 export async function getAllMonthlySummaries(uid) {
-  const snap = await getDocs(
-    query(collection(db, 'users', uid, 'monthlySummaries'), orderBy('year', 'desc'), orderBy('month', 'desc'))
-  )
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+  const snap = await getDocs(collection(db, 'users', uid, 'monthlySummaries'))
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => b.year !== a.year ? b.year - a.year : b.month - a.month)
 }
 
 // ── Admin ───────────────────────────────────────────────
