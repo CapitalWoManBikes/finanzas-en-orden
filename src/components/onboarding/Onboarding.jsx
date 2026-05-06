@@ -116,6 +116,7 @@ export default function Onboarding() {
                     min="0"
                     value={income}
                     onChange={(e) => setIncome(e.target.value)}
+                    onFocus={() => setIncome('')}
                     className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-lg font-semibold"
                     placeholder="3000000"
                   />
@@ -179,6 +180,7 @@ export default function Onboarding() {
                         min="0"
                         value={exp.amount}
                         onChange={(e) => updateExpense(i, 'amount', e.target.value)}
+                        onFocus={(e) => { const updated = [...expenses]; updated[i] = { ...updated[i], amount: '' }; setExpenses(updated) }}
                         className="w-28 pl-5 pr-2 py-1 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
                       />
                     </div>
@@ -232,6 +234,7 @@ export default function Onboarding() {
                           min="0"
                           value={budget[key]}
                           onChange={(e) => setBudget({ ...budget, [key]: e.target.value })}
+                          onFocus={() => setBudget((b) => ({ ...b, [key]: '' }))}
                           className="w-full pl-8 pr-28 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                           placeholder="0"
                         />

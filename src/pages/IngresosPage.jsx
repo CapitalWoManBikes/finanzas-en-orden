@@ -110,6 +110,7 @@ export default function IngresosPage() {
                         required
                         value={form.income}
                         onChange={(e) => setForm({ ...form, income: e.target.value })}
+                        onFocus={() => setForm((f) => ({ ...f, income: '' }))}
                         className={`${inputCls} pl-8 text-lg font-bold`}
                         placeholder="3,000,000"
                       />

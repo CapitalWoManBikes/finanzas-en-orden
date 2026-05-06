@@ -272,6 +272,7 @@ export default function GastosPage() {
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
                     <input type="number" min="0" required value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                      onFocus={() => setForm((f) => ({ ...f, amount: '' }))}
                       className={`${inputCls} pl-6`} placeholder="0" />
                   </div>
                   {form.amount > 0 && <p className="text-xs text-emerald-600 font-medium mt-1">{formatCOP(parseFloat(form.amount) || 0)}</p>}
