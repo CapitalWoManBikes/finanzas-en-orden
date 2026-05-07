@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useFinance } from '../hooks/useFinance'
 import { useAuth } from '../context/AuthContext'
 import AppLayout from '../components/layout/AppLayout'
 import { formatCOP, MONTHS, currentMonth, currentYear } from '../utils/format'
+import { Card, KPI, Chip, Button, ProgressBar, SectionHeader, Money, Ico, ICONS } from '../components/fo'
 import DailyWidget from '../components/dashboard/DailyWidget'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -11,297 +12,211 @@ import {
 } from 'recharts'
 import Spinner from '../components/ui/Spinner'
 
-const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4']
+const COLORS = ['oklch(0.66 0.20 255)', 'oklch(0.74 0.16 160)', 'oklch(0.80 0.16 80)', 'oklch(0.70 0.20 20)', 'oklch(0.74 0.16 200)', 'oklch(0.74 0.16 300)']
 
-const ACCOUNT_BADGE = {
-  fixedExpenses: { label: 'Gastos fijos', cls: 'bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-200' },
-  savings: { label: 'Ahorro', cls: 'bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-200' },
-  dailySpending: { label: 'Gasto diario', cls: 'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200' },
-}
-
-function Chip({ type }) {
-  const b = ACCOUNT_BADGE[type] ?? { label: type, cls: 'bg-gray-100 text-gray-600' }
-  return <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${b.cls}`}>{b.label}</span>
-}
-
-function KpiCard({ icon, value, label, accent = 'emerald', negative }) {
-  const accentMap = {
-    emerald: 'bg-emerald-50 text-emerald-600',
-    red: 'bg-red-50 text-red-500',
-    blue: 'bg-blue-50 text-blue-600',
-    amber: 'bg-amber-50 text-amber-600',
-  }
-  return (
-    <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${accentMap[accent]}`}>
-        {icon}
-      </div>
-      <p className={`text-xl lg:text-2xl font-bold tracking-tight ${negative ? 'text-red-500' : 'text-slate-900'}`}>
-        {value}
-      </p>
-      <p className="text-xs text-slate-400 mt-1 font-medium">{label}</p>
-    </div>
-  )
+const ACCT_CHIP = {
+  fixedExpenses: <Chip tone="accent">Gastos fijos</Chip>,
+  savings:       <Chip tone="pos">Ahorro</Chip>,
+  dailySpending: <Chip tone="warn">Gasto diario</Chip>,
 }
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
   return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-lg p-3 text-xs">
-      <p className="font-semibold text-slate-700 mb-1">{label}</p>
-      {payload.map((p) => (
-        <p key={p.name} style={{ color: p.color }} className="font-medium">{p.name}: {formatCOP(p.value)}</p>
-      ))}
+    <div style={{ background: 'var(--fo-surface-2)', border: '1px solid var(--fo-line)', borderRadius: 12, padding: '10px 14px', fontSize: 12 }}>
+      <p style={{ fontWeight: 600, marginBottom: 4, color: 'var(--fo-fg)' }}>{label}</p>
+      {payload.map(p => <p key={p.name} style={{ color: p.color }}>{p.name}: {formatCOP(p.value)}</p>)}
     </div>
   )
 }
 
 export default function DashboardPage() {
   const { userData } = useAuth()
+  const navigate = useNavigate()
   const [month] = useState(currentMonth())
   const [year] = useState(currentYear())
   const { income, budget, transactions, loading } = useFinance(month, year)
 
   const incomeVal = income?.income ?? 0
   const totalSpent = transactions.reduce((s, t) => s + (t.amount || 0), 0)
-  const totalSaved = transactions.filter((t) => t.accountType === 'savings').reduce((s, t) => s + t.amount, 0)
+  const totalSaved = transactions.filter(t => t.accountType === 'savings').reduce((s, t) => s + t.amount, 0)
   const available = incomeVal - totalSpent
   const savingsRate = incomeVal > 0 ? Math.round((totalSaved / incomeVal) * 100) : 0
   const spendRate = incomeVal > 0 ? Math.round((totalSpent / incomeVal) * 100) : 0
-
   const hasActivity = transactions.length > 0
 
   const alerts = []
-  if (!income) alerts.push({ type: 'warning', msg: 'No tienes ingreso registrado para este mes.', link: '/ingresos', linkLabel: 'Registrar' })
-  if (hasActivity && spendRate > 90) alerts.push({ type: 'danger', msg: `Llevas el ${spendRate}% del ingreso gastado este mes.` })
-  if (hasActivity && savingsRate < 10) alerts.push({ type: 'warning', msg: 'Tu tasa de ahorro es menor al 10%. Revisa tus gastos.' })
-  if (hasActivity && savingsRate >= 15) alerts.push({ type: 'success', msg: `¡Excelente! Llevas un ${savingsRate}% de ahorro este mes.` })
+  if (!income) alerts.push({ tone: 'warn', msg: 'No tienes ingreso registrado para este mes.', link: '/ingresos', linkLabel: 'Registrar' })
+  if (hasActivity && spendRate > 90) alerts.push({ tone: 'neg', msg: `Llevas el ${spendRate}% del ingreso gastado este mes.` })
+  if (hasActivity && savingsRate < 10) alerts.push({ tone: 'warn', msg: 'Tu tasa de ahorro es menor al 10%. Revisa tus gastos.' })
+  if (hasActivity && savingsRate >= 15) alerts.push({ tone: 'pos', msg: `¡Excelente! Llevas un ${savingsRate}% de ahorro este mes.` })
 
   const byCategory = {}
-  transactions.forEach((t) => { byCategory[t.category] = (byCategory[t.category] || 0) + t.amount })
+  transactions.forEach(t => { byCategory[t.category] = (byCategory[t.category] || 0) + t.amount })
   const pieData = Object.entries(byCategory).map(([name, value]) => ({ name, value }))
 
   const barData = [
-    { name: 'G. Fijos', presupuesto: budget?.fixedExpensesBudget ?? 0, gastado: transactions.filter((t) => t.accountType === 'fixedExpenses').reduce((s, t) => s + t.amount, 0) },
-    { name: 'Ahorro', presupuesto: budget?.savingsBudget ?? 0, gastado: transactions.filter((t) => t.accountType === 'savings').reduce((s, t) => s + t.amount, 0) },
-    { name: 'Gasto diario', presupuesto: budget?.dailySpendingBudget ?? 0, gastado: transactions.filter((t) => t.accountType === 'dailySpending').reduce((s, t) => s + t.amount, 0) },
+    { name: 'G. Fijos',     presupuesto: budget?.fixedExpensesBudget ?? 0, gastado: transactions.filter(t => t.accountType === 'fixedExpenses').reduce((s, t) => s + t.amount, 0) },
+    { name: 'Ahorro',       presupuesto: budget?.savingsBudget ?? 0,        gastado: transactions.filter(t => t.accountType === 'savings').reduce((s, t) => s + t.amount, 0) },
+    { name: 'Gasto diario', presupuesto: budget?.dailySpendingBudget ?? 0,  gastado: transactions.filter(t => t.accountType === 'dailySpending').reduce((s, t) => s + t.amount, 0) },
   ]
 
   if (loading) return (
     <AppLayout>
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <Spinner size="lg" />
-          <p className="text-slate-400 text-sm mt-4">Cargando datos...</p>
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 240 }}>
+        <Spinner size="lg"/>
       </div>
     </AppLayout>
   )
 
-  const alertStyle = {
-    danger: { bg: 'bg-red-50 border-red-200 text-red-700', icon: '🚨' },
-    warning: { bg: 'bg-amber-50 border-amber-200 text-amber-700', icon: '⚠️' },
-    success: { bg: 'bg-emerald-50 border-emerald-200 text-emerald-700', icon: '✅' },
-  }
+  const firstName = userData?.name?.split(' ')[0] ?? ''
 
   return (
     <AppLayout>
-      <div className="max-w-5xl mx-auto space-y-5">
+      <div style={{ maxWidth: 960, margin: '0 auto' }}>
 
         {/* Header */}
-        <div className="flex justify-between items-start gap-3">
-          <div>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1">
-              {MONTHS[month - 1]} {year}
-            </p>
-            <h1 className="text-2xl font-bold text-slate-900 leading-tight">
-              Hola, {userData?.name?.split(' ')[0]} 👋
-            </h1>
-            <p className="text-sm text-slate-500 mt-0.5">Aquí está el resumen de tus finanzas este mes.</p>
-          </div>
-          <Link
-            to="/ingresos"
-            className="flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 bg-emerald-500 text-white rounded-xl font-semibold hover:bg-emerald-600 transition text-sm shadow-sm"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Ingreso
-          </Link>
-        </div>
+        <SectionHeader
+          overline={`${MONTHS[month - 1]} ${year}`}
+          title={`Hola, ${firstName}`}
+          subtitle="Aquí está el resumen de tus finanzas este mes."
+          action={
+            <Button onClick={() => navigate('/ingresos')} icon={<Ico d={ICONS.plus} size={14}/>}>
+              Ingreso
+            </Button>
+          }
+        />
 
         {/* Alerts */}
-        {alerts.length > 0 && (
-          <div className="space-y-2">
-            {alerts.map((a, i) => {
-              const s = alertStyle[a.type]
-              return (
-                <div key={i} className={`flex items-center justify-between gap-3 px-4 py-3 rounded-xl border text-sm font-medium ${s.bg}`}>
-                  <div className="flex items-center gap-2">
-                    <span className="flex-shrink-0 text-base">{s.icon}</span>
-                    <span>{a.msg}</span>
-                  </div>
-                  {a.link && (
-                    <Link to={a.link} className="flex-shrink-0 underline text-xs font-semibold opacity-80 hover:opacity-100">
-                      {a.linkLabel}
-                    </Link>
-                  )}
-                </div>
-              )
-            })}
+        {alerts.map((a, i) => (
+          <div key={i} style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+            padding: '11px 16px', borderRadius: 'var(--fo-r-md)',
+            background: a.tone === 'neg' ? 'var(--fo-neg-soft)' : a.tone === 'warn' ? 'var(--fo-warn-soft)' : 'var(--fo-pos-soft)',
+            border: `1px solid ${a.tone === 'neg' ? 'var(--fo-neg)' : a.tone === 'warn' ? 'var(--fo-warn)' : 'var(--fo-pos)'}`,
+            color: a.tone === 'neg' ? 'var(--fo-neg)' : a.tone === 'warn' ? 'var(--fo-warn)' : 'var(--fo-pos)',
+            fontSize: 13, fontWeight: 500, marginBottom: 10,
+          }}>
+            <span>{a.msg}</span>
+            {a.link && <Link to={a.link} style={{ color: 'inherit', fontWeight: 700, fontSize: 12, textDecoration: 'underline' }}>{a.linkLabel}</Link>}
+          </div>
+        ))}
+
+        {/* Daily Widget */}
+        {income && budget?.dailySpendingBudget > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <DailyWidget income={income} budget={budget} transactions={transactions} paymentConfig={userData?.paymentConfig}/>
           </div>
         )}
 
-        {/* Daily Widget — solo si hay ingreso y presupuesto diario configurado */}
-        {income && budget?.dailySpendingBudget > 0 && (
-          <DailyWidget
-            income={income}
-            budget={budget}
-            transactions={transactions}
-            paymentConfig={userData?.paymentConfig}
-          />
-        )}
-
-        {/* KPI Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <KpiCard
-            accent="emerald"
-            label="Ingreso mensual"
-            value={formatCOP(incomeVal)}
-            icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>}
-          />
-          <KpiCard
-            accent="red"
-            label="Total gastado"
-            value={formatCOP(totalSpent)}
-            icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>}
-          />
-          <KpiCard
-            accent="blue"
-            label="Ahorro acumulado"
-            value={formatCOP(totalSaved)}
-            icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>}
-          />
-          <KpiCard
-            accent={available >= 0 ? 'amber' : 'red'}
-            label="Saldo disponible"
-            value={formatCOP(available)}
-            negative={available < 0}
-            icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 16v-1m0-14v-.01" /></svg>}
-          />
+        {/* KPIs */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 16 }} className="kpi-grid">
+          <style>{`@media(min-width:768px){.kpi-grid{grid-template-columns:repeat(4,1fr)!important}}`}</style>
+          <KPI label="Ingreso mensual" value={formatCOP(incomeVal)} accent/>
+          <KPI label="Total gastado" value={formatCOP(totalSpent)} delta={spendRate > 0 ? `${spendRate}%` : undefined} deltaTone={spendRate > 80 ? 'neg' : 'warn'}/>
+          <KPI label="Ahorro acumulado" value={formatCOP(totalSaved)} delta={savingsRate > 0 ? `${savingsRate}%` : undefined} deltaTone="pos"/>
+          <KPI label="Saldo disponible" value={formatCOP(available)} deltaTone={available < 0 ? 'neg' : 'pos'}/>
         </div>
 
         {/* Progress bars */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-            <div className="flex justify-between items-center mb-3">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }} className="prog-grid">
+          <style>{`@media(max-width:640px){.prog-grid{grid-template-columns:1fr!important}}`}</style>
+          <Card>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <div>
-                <p className="text-sm font-semibold text-slate-700">Porcentaje de gasto</p>
-                <p className="text-xs text-slate-400">{formatCOP(totalSpent)} de {formatCOP(incomeVal)}</p>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>Porcentaje de gasto</p>
+                <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--fo-fg-dim)' }}>{formatCOP(totalSpent)} de {formatCOP(incomeVal)}</p>
               </div>
-              <span className={`text-2xl font-bold ${spendRate > 90 ? 'text-red-500' : 'text-slate-900'}`}>{spendRate}%</span>
+              <span style={{ fontSize: 24, fontWeight: 800, color: spendRate > 90 ? 'var(--fo-neg)' : 'var(--fo-fg)', fontVariantNumeric: 'tabular-nums' }}>{spendRate}%</span>
             </div>
-            <div className="w-full bg-gray-100 rounded-full h-2">
-              <div
-                className={`h-2 rounded-full transition-all ${spendRate > 90 ? 'bg-red-500' : spendRate > 70 ? 'bg-amber-500' : 'bg-emerald-500'}`}
-                style={{ width: `${Math.min(spendRate, 100)}%` }}
-              />
-            </div>
-          </div>
-          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-            <div className="flex justify-between items-center mb-3">
+            <ProgressBar value={spendRate} tone={spendRate > 90 ? 'neg' : spendRate > 70 ? 'warn' : 'pos'}/>
+          </Card>
+          <Card>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <div>
-                <p className="text-sm font-semibold text-slate-700">Tasa de ahorro</p>
-                <p className="text-xs text-slate-400">{formatCOP(totalSaved)} ahorrado</p>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>Tasa de ahorro</p>
+                <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--fo-fg-dim)' }}>{formatCOP(totalSaved)} ahorrado</p>
               </div>
-              <span className={`text-2xl font-bold ${savingsRate < 10 && incomeVal > 0 ? 'text-amber-500' : 'text-slate-900'}`}>{savingsRate}%</span>
+              <span style={{ fontSize: 24, fontWeight: 800, color: savingsRate < 10 && incomeVal > 0 ? 'var(--fo-warn)' : 'var(--fo-fg)', fontVariantNumeric: 'tabular-nums' }}>{savingsRate}%</span>
             </div>
-            <div className="w-full bg-gray-100 rounded-full h-2">
-              <div className="h-2 rounded-full bg-blue-500 transition-all" style={{ width: `${Math.min(savingsRate, 100)}%` }} />
-            </div>
-          </div>
+            <ProgressBar value={savingsRate} tone="accent"/>
+          </Card>
         </div>
 
         {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-            <p className="text-sm font-bold text-slate-800 mb-1">Presupuesto vs Gastado</p>
-            <p className="text-xs text-slate-400 mb-4">Comparación por cuenta</p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }} className="chart-grid">
+          <style>{`@media(max-width:768px){.chart-grid{grid-template-columns:1fr!important}}`}</style>
+          <Card>
+            <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700 }}>Presupuesto vs Gastado</p>
+            <p style={{ margin: '0 0 16px', fontSize: 11, color: 'var(--fo-fg-dim)' }}>Comparación por cuenta</p>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={barData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1000000).toFixed(1)}M`} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="presupuesto" fill="#e2e8f0" radius={[4, 4, 0, 0]} name="Presupuesto" />
-                <Bar dataKey="gastado" fill="#10b981" radius={[4, 4, 0, 0]} name="Gastado" />
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--fo-fg-dim)' }} axisLine={false} tickLine={false}/>
+                <YAxis tick={{ fontSize: 10, fill: 'var(--fo-fg-dim)' }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000000).toFixed(1)}M`}/>
+                <Tooltip content={<CustomTooltip/>}/>
+                <Bar dataKey="presupuesto" fill="var(--fo-surface-3)" radius={[4, 4, 0, 0]} name="Presupuesto"/>
+                <Bar dataKey="gastado" fill="oklch(0.66 0.20 255)" radius={[4, 4, 0, 0]} name="Gastado"/>
               </BarChart>
             </ResponsiveContainer>
-          </div>
-
-          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-            <p className="text-sm font-bold text-slate-800 mb-1">Gastos por categoría</p>
-            <p className="text-xs text-slate-400 mb-4">Distribución del mes actual</p>
+          </Card>
+          <Card>
+            <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700 }}>Gastos por categoría</p>
+            <p style={{ margin: '0 0 16px', fontSize: 11, color: 'var(--fo-fg-dim)' }}>Distribución del mes actual</p>
             {pieData.length > 0 ? (
               <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
                   <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="45%" outerRadius={65} strokeWidth={0}>
-                    {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]}/>)}
                   </Pie>
-                  <Tooltip formatter={(v) => formatCOP(v)} />
-                  <Legend iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
+                  <Tooltip formatter={v => formatCOP(v)}/>
+                  <Legend iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '8px', color: 'var(--fo-fg-muted)' }}/>
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex flex-col items-center justify-center h-48 text-slate-300">
-                <svg className="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                <p className="text-sm">Sin gastos registrados</p>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 160, color: 'var(--fo-fg-dim)' }}>
+                <Ico d={ICONS.spend} size={32}/>
+                <p style={{ margin: '10px 0 0', fontSize: 13 }}>Sin gastos registrados</p>
               </div>
             )}
-          </div>
+          </Card>
         </div>
 
         {/* Recent transactions */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="flex justify-between items-center px-5 py-4 border-b border-gray-100">
+        <Card padded={false}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid var(--fo-line)' }}>
             <div>
-              <p className="font-bold text-slate-800 text-sm">Últimos gastos</p>
-              <p className="text-xs text-slate-400">{transactions.length} transacciones este mes</p>
+              <p style={{ margin: 0, fontWeight: 700, fontSize: 13 }}>Últimos gastos</p>
+              <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--fo-fg-dim)' }}>{transactions.length} transacciones este mes</p>
             </div>
-            <Link to="/gastos" className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition">
+            <Link to="/gastos" style={{ fontSize: 12, fontWeight: 600, color: 'var(--fo-accent-fg)', textDecoration: 'none' }}>
               Ver todos →
             </Link>
           </div>
           {transactions.length === 0 ? (
-            <div className="py-12 text-center text-slate-400">
-              <svg className="w-10 h-10 mx-auto mb-3 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-              </svg>
-              <p className="text-sm font-medium">No hay gastos registrados</p>
-              <Link to="/gastos" className="inline-block mt-2 text-xs text-emerald-600 font-semibold hover:underline">
-                Registrar primer gasto
-              </Link>
+            <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--fo-fg-dim)' }}>
+              <Ico d={ICONS.spend} size={32}/>
+              <p style={{ margin: '10px 0 6px', fontSize: 13 }}>No hay gastos registrados</p>
+              <Link to="/gastos" style={{ fontSize: 12, color: 'var(--fo-accent-fg)', fontWeight: 600 }}>Registrar primer gasto</Link>
             </div>
           ) : (
-            <div>
-              {transactions.slice(0, 5).map((t, i) => (
-                <div key={t.id} className={`flex items-center justify-between px-5 py-3.5 gap-3 ${i < 4 ? 'border-b border-gray-50' : ''} hover:bg-gray-50/60 transition`}>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-slate-800 text-sm truncate">{t.name}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <p className="text-xs text-slate-400">{t.date}</p>
-                      <span className="text-slate-200">·</span>
-                      <Chip type={t.accountType} />
-                    </div>
+            transactions.slice(0, 5).map((t, i) => (
+              <div key={t.id} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '13px 20px', gap: 12,
+                borderBottom: i < 4 ? '1px solid var(--fo-line-soft)' : 'none',
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: 0, fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
+                    <span style={{ fontSize: 11, color: 'var(--fo-fg-dim)' }}>{t.date}</span>
+                    {ACCT_CHIP[t.accountType]}
                   </div>
-                  <p className="font-bold text-slate-800 text-sm flex-shrink-0">{formatCOP(t.amount)}</p>
                 </div>
-              ))}
-            </div>
+                <Money value={t.amount} style={{ fontSize: 14 }}/>
+              </div>
+            ))
           )}
-        </div>
-
+        </Card>
       </div>
     </AppLayout>
   )
