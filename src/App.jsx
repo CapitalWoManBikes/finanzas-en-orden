@@ -10,6 +10,7 @@ import GastosPage from './pages/GastosPage'
 import GastosBasePage from './pages/GastosBasePage'
 import HistorialPage from './pages/HistorialPage'
 import AdminPage from './pages/AdminPage'
+import ConfiguracionPage from './pages/ConfiguracionPage'
 import Spinner from './components/ui/Spinner'
 
 function AppRoutes() {
@@ -37,6 +38,7 @@ function AppRoutes() {
       <Route path="/gastos-base" element={<ProtectedRoute><GastosBasePage /></ProtectedRoute>} />
       <Route path="/historial" element={<ProtectedRoute><HistorialPage /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
+      <Route path="/configuracion" element={<ProtectedRoute><ConfiguracionPage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
     </Routes>
   )

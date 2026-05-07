@@ -4,6 +4,7 @@ import { useFinance } from '../hooks/useFinance'
 import { useAuth } from '../context/AuthContext'
 import AppLayout from '../components/layout/AppLayout'
 import { formatCOP, MONTHS, currentMonth, currentYear } from '../utils/format'
+import DailyWidget from '../components/dashboard/DailyWidget'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
@@ -148,6 +149,14 @@ export default function DashboardPage() {
             })}
           </div>
         )}
+
+        {/* Daily Widget */}
+        <DailyWidget
+          income={income}
+          budget={budget}
+          transactions={transactions}
+          paymentConfig={userData?.paymentConfig}
+        />
 
         {/* KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
