@@ -6,7 +6,6 @@ import Spinner from '../ui/Spinner'
 
 const STEPS = ['Ingreso', 'Gastos base', 'Distribución']
 
-// Suma los gastos activos por tipo de cuenta
 function calcSuggested(expenses) {
   const sum = { fixedExpenses: 0, savings: 0, dailySpending: 0 }
   expenses.forEach((e) => {
@@ -16,6 +15,10 @@ function calcSuggested(expenses) {
   })
   return sum
 }
+
+const inputBase = 'flex items-center border border-gray-200 rounded-xl focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-emerald-500 overflow-hidden bg-white'
+const inputPrefix = 'px-3 text-gray-400 font-semibold border-r border-gray-200 bg-gray-50 py-3 flex-shrink-0 text-sm'
+const inputField = 'flex-1 px-3 py-3 focus:outline-none bg-white min-w-0 text-slate-800 font-semibold'
 
 export default function Onboarding() {
   const { user, refreshUserData } = useAuth()
@@ -42,7 +45,6 @@ export default function Onboarding() {
 
   const removeExpense = (i) => setExpenses(expenses.filter((_, idx) => idx !== i))
 
-  // Al pasar al step 2, precalcula sugerencias desde los gastos base
   const goToDistribution = () => {
     const suggested = calcSuggested(expenses)
     setBudget({
@@ -78,51 +80,67 @@ export default function Onboarding() {
   const suggested = calcSuggested(expenses)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl overflow-hidden">
+    <div className="min-h-screen bg-slate-950 flex flex-col lg:items-center lg:justify-center lg:p-6">
+      <div className="flex-1 lg:flex-none w-full lg:max-w-lg bg-white lg:rounded-2xl lg:shadow-2xl flex flex-col overflow-hidden">
+
         {/* Header */}
-        <div className="bg-emerald-500 px-8 py-6">
-          <div className="flex items-center gap-3 mb-2">
-            <span className="text-2xl">💰</span>
-            <h1 className="text-2xl font-bold text-white">Configura tus finanzas</h1>
+        <div className="bg-emerald-500 px-5 pt-10 pb-5 lg:px-8 lg:pt-7 lg:pb-6 flex-shrink-0">
+          <div className="flex items-center gap-2.5 mb-5">
+            <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+              <span className="text-white font-black text-base leading-none">$</span>
+            </div>
+            <h1 className="text-lg font-bold text-white">Configura tus finanzas</h1>
           </div>
-          <div className="flex gap-2 mt-4">
-            {STEPS.map((s, i) => (
-              <div key={s} className="flex items-center gap-2">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold ${i <= step ? 'bg-white text-emerald-600' : 'bg-emerald-400 text-white'}`}>
-                  {i < step ? '✓' : i + 1}
-                </div>
-                <span className={`text-sm ${i <= step ? 'text-white font-medium' : 'text-emerald-200'}`}>{s}</span>
-                {i < STEPS.length - 1 && <div className="w-8 h-0.5 bg-emerald-400 mx-1" />}
-              </div>
-            ))}
+
+          {/* Step indicator — barra de progreso + labels */}
+          <div className="space-y-2">
+            <div className="flex gap-1.5">
+              {STEPS.map((_, i) => (
+                <div
+                  key={i}
+                  className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= step ? 'bg-white' : 'bg-white/30'}`}
+                />
+              ))}
+            </div>
+            <div className="flex justify-between">
+              {STEPS.map((s, i) => (
+                <span key={s} className={`text-xs font-semibold ${i <= step ? 'text-white' : 'text-emerald-200'}`}>
+                  {i < step ? '✓ ' : ''}{s}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
 
-        <div className="p-8">
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-5 py-6 lg:px-8 lg:py-7">
+
           {/* Step 0: Income */}
           {step === 0 && (
-            <div>
-              <h2 className="text-xl font-bold text-slate-800 mb-2">¿Cuánto ganas al mes?</h2>
-              <p className="text-slate-500 mb-6">Ingresa tu salario o ingreso mensual principal.</p>
+            <div className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Ingreso mensual — {MONTHS[month - 1]} {year}
+                <h2 className="text-xl font-bold text-slate-900">¿Cuánto ganas al mes?</h2>
+                <p className="text-slate-500 text-sm mt-1">Ingresa tu salario o ingreso mensual principal.</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                  Ingreso — {MONTHS[month - 1]} {year}
                 </label>
-                <div className="flex items-center border border-gray-200 rounded-xl focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-emerald-500 overflow-hidden bg-white">
-                  <span className="px-4 text-gray-400 font-semibold text-lg border-r border-gray-200 bg-gray-50 py-3 flex-shrink-0">$</span>
+                <div className={inputBase}>
+                  <span className={`${inputPrefix} text-base`}>$</span>
                   <input
                     type="number"
                     min="0"
                     value={income}
                     onChange={(e) => setIncome(e.target.value)}
                     onFocus={() => setIncome('')}
-                    className="flex-1 px-4 py-3 text-lg font-semibold focus:outline-none bg-white"
+                    className={`${inputField} text-xl`}
                     placeholder="3,000,000"
                   />
                 </div>
                 {incomeNum > 0 && (
-                  <p className="text-emerald-600 font-medium mt-2">{formatCOP(incomeNum)}</p>
+                  <p className="text-emerald-600 font-semibold mt-2 text-sm">{formatCOP(incomeNum)}</p>
                 )}
               </div>
             </div>
@@ -130,121 +148,141 @@ export default function Onboarding() {
 
           {/* Step 1: Default expenses */}
           {step === 1 && (
-            <div>
-              <h2 className="text-xl font-bold text-slate-800 mb-2">Tus gastos recurrentes</h2>
-              <p className="text-slate-500 mb-4">Edita, activa/desactiva o elimina según tu situación real.</p>
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">Gastos recurrentes</h2>
+                <p className="text-slate-500 text-sm mt-1">Edita, activa o desactiva según tu situación real.</p>
+              </div>
 
-              {/* Preview of suggested distribution */}
-              <div className="grid grid-cols-3 gap-2 mb-4">
+              {/* Suggested distribution preview */}
+              <div className="grid grid-cols-3 gap-2">
                 {[
-                  { key: 'fixedExpenses', label: 'G. fijos', icon: '🏠' },
-                  { key: 'savings', label: 'Ahorro', icon: '🏦' },
-                  { key: 'dailySpending', label: 'G. diario', icon: '🛒' },
-                ].map(({ key, label, icon }) => (
-                  <div key={key} className="bg-slate-50 rounded-xl p-3 text-center border border-gray-100">
-                    <p className="text-xs text-slate-400 mb-1">{icon} {label}</p>
-                    <p className="font-bold text-slate-700 text-sm">{formatCOP(suggested[key])}</p>
+                  { key: 'fixedExpenses', label: 'G. fijos', color: 'bg-blue-50 text-blue-700' },
+                  { key: 'savings', label: 'Ahorro', color: 'bg-violet-50 text-violet-700' },
+                  { key: 'dailySpending', label: 'G. diario', color: 'bg-amber-50 text-amber-700' },
+                ].map(({ key, label, color }) => (
+                  <div key={key} className={`rounded-xl p-3 text-center ${color}`}>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide opacity-70 mb-0.5">{label}</p>
+                    <p className="font-bold text-xs">{formatCOP(suggested[key])}</p>
                   </div>
                 ))}
               </div>
 
-              <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+              <div className="space-y-2 max-h-72 overflow-y-auto -mx-1 px-1">
                 {expenses.map((exp, i) => (
-                  <div key={i} className="flex gap-2 items-center p-3 border border-gray-100 rounded-xl hover:bg-gray-50">
-                    <input
-                      type="checkbox"
-                      checked={exp.isActive}
-                      onChange={(e) => updateExpense(i, 'isActive', e.target.checked)}
-                      className="accent-emerald-500 w-4 h-4 flex-shrink-0"
-                    />
+                  <div key={i} className={`flex gap-2 items-center p-3 border rounded-xl transition ${exp.isActive ? 'border-gray-200 bg-white' : 'border-gray-100 bg-gray-50 opacity-50'}`}>
+                    <button
+                      onClick={() => updateExpense(i, 'isActive', !exp.isActive)}
+                      className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition
+                        ${exp.isActive ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300'}`}
+                    >
+                      {exp.isActive && (
+                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </button>
                     <input
                       type="text"
                       value={exp.name}
                       onChange={(e) => updateExpense(i, 'name', e.target.value)}
-                      className="flex-1 border-0 bg-transparent focus:outline-none font-medium text-slate-700 text-sm"
+                      className="flex-1 bg-transparent focus:outline-none font-medium text-slate-700 text-sm min-w-0"
                       placeholder="Nombre del gasto"
                     />
                     <select
                       value={exp.accountType}
                       onChange={(e) => updateExpense(i, 'accountType', e.target.value)}
-                      className="border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 flex-shrink-0"
+                      className="border border-gray-200 rounded-lg px-1.5 py-1 text-xs focus:outline-none bg-white flex-shrink-0 text-slate-600"
                     >
-                      <option value="fixedExpenses">G. fijos</option>
+                      <option value="fixedExpenses">Fijo</option>
                       <option value="savings">Ahorro</option>
-                      <option value="dailySpending">G. diario</option>
+                      <option value="dailySpending">Diario</option>
                     </select>
-                    <div className="flex items-center border border-gray-200 rounded-lg focus-within:ring-1 focus-within:ring-emerald-500 focus-within:border-emerald-500 overflow-hidden flex-shrink-0 bg-white">
-                      <span className="px-2 text-gray-400 text-sm font-medium border-r border-gray-200 bg-gray-50 py-1.5 flex-shrink-0">$</span>
+                    <div className="flex items-center border border-gray-200 rounded-lg focus-within:ring-1 focus-within:ring-emerald-500 overflow-hidden flex-shrink-0 bg-white">
+                      <span className="px-1.5 text-gray-400 text-xs font-medium border-r border-gray-200 bg-gray-50 py-1.5">$</span>
                       <input
                         type="number"
                         min="0"
                         value={exp.amount}
                         onChange={(e) => updateExpense(i, 'amount', e.target.value)}
-                        onFocus={(e) => { const updated = [...expenses]; updated[i] = { ...updated[i], amount: '' }; setExpenses(updated) }}
-                        className="w-24 px-2 py-1.5 text-sm focus:outline-none bg-white"
+                        onFocus={() => { const u = [...expenses]; u[i] = { ...u[i], amount: '' }; setExpenses(u) }}
+                        className="w-20 px-1.5 py-1.5 text-xs focus:outline-none bg-white font-semibold text-slate-700"
                       />
                     </div>
-                    <button onClick={() => removeExpense(i)} className="text-red-400 hover:text-red-600 text-lg leading-none flex-shrink-0">×</button>
+                    <button onClick={() => removeExpense(i)} className="text-slate-300 hover:text-red-400 transition flex-shrink-0">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   </div>
                 ))}
               </div>
+
               <button
                 onClick={addExpense}
-                className="mt-3 text-emerald-600 hover:text-emerald-700 text-sm font-medium flex items-center gap-1"
+                className="flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 text-sm font-semibold transition"
               >
-                + Agregar gasto
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Agregar gasto
               </button>
             </div>
           )}
 
           {/* Step 2: Budget distribution */}
           {step === 2 && (
-            <div>
-              <h2 className="text-xl font-bold text-slate-800 mb-1">Distribuye tu ingreso</h2>
-              <p className="text-slate-500 text-sm mb-1">
-                Ingreso: <span className="font-semibold text-emerald-600">{formatCOP(incomeNum)}</span>
-              </p>
-              <p className={`text-sm mb-5 font-medium ${remaining < 0 ? 'text-red-500' : remaining === 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
-                Sin asignar: {formatCOP(remaining)}
-              </p>
+            <div className="space-y-5">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">Distribuye tu ingreso</h2>
+                <div className="flex items-center justify-between mt-1">
+                  <p className="text-slate-500 text-sm">Ingreso: <span className="font-bold text-emerald-600">{formatCOP(incomeNum)}</span></p>
+                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${remaining < 0 ? 'bg-red-50 text-red-600' : remaining === 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
+                    {remaining === 0 ? '✓ Completo' : `Sin asignar: ${formatCOP(remaining)}`}
+                  </span>
+                </div>
+              </div>
 
               <div className="space-y-4">
                 {[
-                  { key: 'fixedExpenses', label: 'Gastos fijos', icon: '🏠', sugKey: 'fixedExpenses' },
-                  { key: 'savings', label: 'Ahorro', icon: '🏦', sugKey: 'savings' },
-                  { key: 'dailySpending', label: 'Gasto diario', icon: '🛒', sugKey: 'dailySpending' },
-                ].map(({ key, label, icon, sugKey }) => {
-                  const sug = suggested[sugKey]
+                  { key: 'fixedExpenses', label: 'Gastos fijos', dot: 'bg-blue-400' },
+                  { key: 'savings', label: 'Ahorro', dot: 'bg-violet-400' },
+                  { key: 'dailySpending', label: 'Gasto diario', dot: 'bg-amber-400' },
+                ].map(({ key, label, dot }) => {
+                  const sug = suggested[key]
                   const pct = incomeNum > 0 ? Math.round((sug / incomeNum) * 100) : 0
                   return (
                     <div key={key}>
-                      <div className="flex justify-between items-center mb-1">
-                        <label className="text-sm font-medium text-gray-700">{icon} {label}</label>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full ${dot}`} />
+                          <label className="text-sm font-semibold text-slate-700">{label}</label>
+                        </div>
                         {sug > 0 && (
                           <span className="text-xs text-slate-400">
                             Sugerido: <span className="font-semibold text-slate-600">{formatCOP(sug)}</span>
-                            <span className="ml-1 text-emerald-600">({pct}%)</span>
+                            <span className="text-emerald-500 ml-1">({pct}%)</span>
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center border border-gray-200 rounded-xl focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-emerald-500 overflow-hidden bg-white">
-                        <span className="px-4 text-gray-400 font-semibold border-r border-gray-200 bg-gray-50 py-3 flex-shrink-0">$</span>
+                      <div className={inputBase}>
+                        <span className={inputPrefix}>$</span>
                         <input
                           type="number"
                           min="0"
                           value={budget[key]}
                           onChange={(e) => setBudget({ ...budget, [key]: e.target.value })}
                           onFocus={() => setBudget((b) => ({ ...b, [key]: '' }))}
-                          className="flex-1 px-4 py-3 focus:outline-none bg-white min-w-0"
+                          className={inputField}
                           placeholder="0"
                         />
                         {sug > 0 && String(budget[key]) !== String(sug) && (
                           <button
                             type="button"
                             onClick={() => setBudget({ ...budget, [key]: sug })}
-                            className="flex-shrink-0 text-xs text-emerald-600 hover:text-emerald-700 font-medium bg-emerald-50 px-3 py-1 mr-2 rounded-lg border border-emerald-200"
+                            className="flex-shrink-0 text-xs text-emerald-600 font-semibold bg-emerald-50 px-3 py-1 mr-2 rounded-lg hover:bg-emerald-100 transition"
                           >
-                            Usar sugerido
+                            Usar
                           </button>
                         )}
                       </div>
@@ -254,44 +292,61 @@ export default function Onboarding() {
               </div>
             </div>
           )}
+        </div>
 
-          {/* Footer buttons */}
-          <div className="flex justify-between mt-8">
-            {step > 0 ? (
-              <button onClick={() => setStep(step - 1)} className="px-6 py-2.5 border border-gray-200 rounded-xl font-medium text-gray-600 hover:bg-gray-50 transition">
-                Atrás
-              </button>
-            ) : <div />}
+        {/* Footer */}
+        <div className="flex-shrink-0 px-5 py-5 lg:px-8 border-t border-gray-100 flex justify-between items-center bg-white">
+          {step > 0 ? (
+            <button
+              onClick={() => setStep(step - 1)}
+              className="flex items-center gap-1.5 px-4 py-2.5 border border-gray-200 rounded-xl font-semibold text-slate-600 hover:bg-gray-50 transition text-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Atrás
+            </button>
+          ) : <div />}
 
-            {step === 0 && (
-              <button
-                onClick={() => setStep(1)}
-                disabled={!incomeNum}
-                className="px-8 py-2.5 bg-emerald-500 text-white font-semibold rounded-xl hover:bg-emerald-600 transition disabled:opacity-40"
-              >
-                Continuar
-              </button>
-            )}
-
-            {step === 1 && (
-              <button
-                onClick={goToDistribution}
-                className="px-8 py-2.5 bg-emerald-500 text-white font-semibold rounded-xl hover:bg-emerald-600 transition"
-              >
-                Continuar
-              </button>
-            )}
-
-            {step === 2 && (
-              <button
-                onClick={finish}
-                disabled={loading || remaining < 0}
-                className="px-8 py-2.5 bg-emerald-500 text-white font-semibold rounded-xl hover:bg-emerald-600 transition disabled:opacity-40 flex items-center gap-2"
-              >
-                {loading ? <Spinner size="sm" /> : 'Empezar'}
-              </button>
-            )}
-          </div>
+          {step === 0 && (
+            <button
+              onClick={() => setStep(1)}
+              disabled={!incomeNum}
+              className="flex items-center gap-1.5 px-6 py-2.5 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition disabled:opacity-40 text-sm"
+            >
+              Continuar
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
+          {step === 1 && (
+            <button
+              onClick={goToDistribution}
+              className="flex items-center gap-1.5 px-6 py-2.5 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition text-sm"
+            >
+              Continuar
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
+          {step === 2 && (
+            <button
+              onClick={finish}
+              disabled={loading || remaining < 0}
+              className="flex items-center gap-1.5 px-6 py-2.5 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition disabled:opacity-40 text-sm"
+            >
+              {loading ? <Spinner size="sm" /> : (
+                <>
+                  Empezar
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>
