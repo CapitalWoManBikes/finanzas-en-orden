@@ -80,8 +80,8 @@ export default function Onboarding() {
   const suggested = calcSuggested(expenses)
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col lg:items-center lg:justify-center lg:p-6">
-      <div className="flex-1 lg:flex-none w-full lg:max-w-lg bg-white lg:rounded-2xl lg:shadow-2xl flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-slate-950 flex flex-col items-center lg:justify-center lg:p-6">
+      <div className="flex-1 lg:flex-none w-full max-w-lg bg-white lg:rounded-2xl lg:shadow-2xl flex flex-col overflow-hidden">
 
         {/* Header */}
         <div className="bg-emerald-500 px-5 pt-10 pb-5 lg:px-8 lg:pt-7 lg:pb-6 flex-shrink-0">
@@ -168,52 +168,61 @@ export default function Onboarding() {
                 ))}
               </div>
 
-              <div className="space-y-2 max-h-72 overflow-y-auto -mx-1 px-1">
+              <div className="space-y-2 max-h-72 overflow-y-auto">
                 {expenses.map((exp, i) => (
-                  <div key={i} className={`flex gap-2 items-center p-3 border rounded-xl transition ${exp.isActive ? 'border-gray-200 bg-white' : 'border-gray-100 bg-gray-50 opacity-50'}`}>
-                    <button
-                      onClick={() => updateExpense(i, 'isActive', !exp.isActive)}
-                      className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition
-                        ${exp.isActive ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300'}`}
-                    >
-                      {exp.isActive && (
-                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </button>
-                    <input
-                      type="text"
-                      value={exp.name}
-                      onChange={(e) => updateExpense(i, 'name', e.target.value)}
-                      className="flex-1 bg-transparent focus:outline-none font-medium text-slate-700 text-sm min-w-0"
-                      placeholder="Nombre del gasto"
-                    />
-                    <select
-                      value={exp.accountType}
-                      onChange={(e) => updateExpense(i, 'accountType', e.target.value)}
-                      className="border border-gray-200 rounded-lg px-1.5 py-1 text-xs focus:outline-none bg-white flex-shrink-0 text-slate-600"
-                    >
-                      <option value="fixedExpenses">Fijo</option>
-                      <option value="savings">Ahorro</option>
-                      <option value="dailySpending">Diario</option>
-                    </select>
-                    <div className="flex items-center border border-gray-200 rounded-lg focus-within:ring-1 focus-within:ring-emerald-500 overflow-hidden flex-shrink-0 bg-white">
-                      <span className="px-1.5 text-gray-400 text-xs font-medium border-r border-gray-200 bg-gray-50 py-1.5">$</span>
+                  <div key={i} className={`p-3 border rounded-xl transition ${exp.isActive ? 'border-gray-200 bg-white' : 'border-gray-100 bg-gray-50 opacity-50'}`}>
+                    {/* Línea 1: checkbox + nombre + X */}
+                    <div className="flex items-center gap-3 mb-2">
+                      <button
+                        onClick={() => updateExpense(i, 'isActive', !exp.isActive)}
+                        className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition
+                          ${exp.isActive ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300'}`}
+                      >
+                        {exp.isActive && (
+                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </button>
                       <input
-                        type="number"
-                        min="0"
-                        value={exp.amount}
-                        onChange={(e) => updateExpense(i, 'amount', e.target.value)}
-                        onFocus={() => { const u = [...expenses]; u[i] = { ...u[i], amount: '' }; setExpenses(u) }}
-                        className="w-20 px-1.5 py-1.5 text-xs focus:outline-none bg-white font-semibold text-slate-700"
+                        type="text"
+                        value={exp.name}
+                        onChange={(e) => updateExpense(i, 'name', e.target.value)}
+                        className="flex-1 bg-transparent focus:outline-none font-semibold text-slate-800 text-sm min-w-0"
+                        placeholder="Nombre del gasto"
                       />
+                      <button
+                        onClick={() => removeExpense(i)}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-50 transition flex-shrink-0"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
                     </div>
-                    <button onClick={() => removeExpense(i)} className="text-slate-300 hover:text-red-400 transition flex-shrink-0">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
+                    {/* Línea 2: tipo de cuenta + monto */}
+                    <div className="flex items-center gap-2 pl-8">
+                      <select
+                        value={exp.accountType}
+                        onChange={(e) => updateExpense(i, 'accountType', e.target.value)}
+                        className="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none bg-white text-slate-600 font-medium"
+                      >
+                        <option value="fixedExpenses">Gastos fijos</option>
+                        <option value="savings">Ahorro</option>
+                        <option value="dailySpending">Gasto diario</option>
+                      </select>
+                      <div className="flex items-center border border-gray-200 rounded-lg focus-within:ring-1 focus-within:ring-emerald-500 overflow-hidden bg-white flex-shrink-0">
+                        <span className="px-2 text-gray-400 text-xs font-semibold border-r border-gray-200 bg-gray-50 py-1.5 flex-shrink-0">$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={exp.amount}
+                          onChange={(e) => updateExpense(i, 'amount', e.target.value)}
+                          onFocus={() => { const u = [...expenses]; u[i] = { ...u[i], amount: '' }; setExpenses(u) }}
+                          className="w-28 px-2 py-1.5 text-sm focus:outline-none bg-white font-semibold text-slate-700"
+                        />
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
