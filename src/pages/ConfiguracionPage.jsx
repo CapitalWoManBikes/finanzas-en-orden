@@ -2,135 +2,117 @@ import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import AppLayout from '../components/layout/AppLayout'
 import { updateUser } from '../lib/firestore'
+import { Card, Button, SectionHeader, Chip } from '../components/fo'
 import Spinner from '../components/ui/Spinner'
 import { getNextPaymentDate, getDaysUntilPayment, formatNextPaymentDate } from '../utils/dailyBudget'
 
-const inputCls = 'w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition bg-white'
-const labelCls = 'block text-xs font-semibold text-slate-600 mb-1.5'
-
+const sel = { background: 'var(--fo-surface-2)', border: '1px solid var(--fo-line)', borderRadius: 'var(--fo-r-md)', padding: '10px 14px', fontSize: 14, color: 'var(--fo-fg)', fontFamily: 'inherit', outline: 'none', width: '100%' }
+const lbl = { display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 600, color: 'var(--fo-fg-muted)' }
 const DAYS = Array.from({ length: 28 }, (_, i) => i + 1)
 
 export default function ConfiguracionPage() {
   const { user, userData, refreshUserData } = useAuth()
   const saved = userData?.paymentConfig ?? {}
 
-  const [mode, setMode] = useState(saved.mode ?? 'monthly')
-  const [payDay, setPayDay] = useState(saved.payDay ?? 1)
-  const [firstQuincena, setFirstQuincena] = useState(saved.firstQuincena ?? 1)
-  const [secondQuincena, setSecondQuincena] = useState(saved.secondQuincena ?? 16)
+  const [mode, setMode]               = useState(saved.mode ?? 'monthly')
+  const [payDay, setPayDay]           = useState(saved.payDay ?? 1)
+  const [firstQuincena, setFirst]     = useState(saved.firstQuincena ?? 1)
+  const [secondQuincena, setSecond]   = useState(saved.secondQuincena ?? 16)
   const [biweeklyPct, setBiweeklyPct] = useState(saved.biweeklyPct ?? 50)
-  const [saving, setSaving] = useState(false)
-  const [success, setSuccess] = useState(false)
+  const [saving, setSaving]           = useState(false)
+  const [success, setSuccess]         = useState(false)
 
   const currentConfig = { mode, payDay, firstQuincena, secondQuincena, biweeklyPct }
-  const daysLeft = getDaysUntilPayment(currentConfig)
-  const nextDate = formatNextPaymentDate(currentConfig)
+  const daysLeft  = getDaysUntilPayment(currentConfig)
+  const nextDate  = formatNextPaymentDate(currentConfig)
 
   const handleSave = async (e) => {
     e.preventDefault()
     setSaving(true)
     await updateUser(user.uid, { paymentConfig: currentConfig })
     await refreshUserData()
-    setSuccess(true)
-    setTimeout(() => setSuccess(false), 2500)
-    setSaving(false)
+    setSuccess(true); setTimeout(() => setSuccess(false), 2500); setSaving(false)
   }
 
   return (
     <AppLayout>
-      <div className="max-w-lg mx-auto space-y-5">
-
-        <div>
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1">Configuración</p>
-          <h1 className="text-2xl font-bold text-slate-900">Modalidad de pago</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Define cuándo recibes tu ingreso para calcular el presupuesto diario.</p>
-        </div>
+      <div style={{ maxWidth: 520, margin: '0 auto' }}>
+        <SectionHeader overline="Configuración" title="Modalidad de pago" subtitle="Define cuándo recibes tu ingreso para calcular el presupuesto diario."/>
 
         {/* Preview */}
-        <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex items-center justify-between">
+        <div style={{ marginBottom: 16, padding: '16px 20px', borderRadius: 'var(--fo-r-lg)', background: 'var(--fo-accent-soft)', border: '1px solid var(--fo-accent-line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide">Próximo pago</p>
-            <p className="text-xl font-bold text-emerald-700 mt-0.5">{nextDate}</p>
+            <p style={{ margin: 0, fontSize: 11, color: 'var(--fo-accent-fg)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Próximo pago</p>
+            <p style={{ margin: '4px 0 0', fontSize: 20, fontWeight: 700, color: 'var(--fo-accent-fg)' }}>{nextDate}</p>
           </div>
-          <div className="text-right">
-            <p className="text-xs text-emerald-500 font-medium">Días restantes</p>
-            <p className="text-2xl font-bold text-emerald-700">{daysLeft}</p>
+          <div style={{ textAlign: 'right' }}>
+            <p style={{ margin: 0, fontSize: 11, color: 'var(--fo-accent-fg)' }}>Días restantes</p>
+            <p className="fo-num" style={{ margin: '2px 0 0', fontSize: 28, color: 'var(--fo-accent-fg)' }}>{daysLeft}</p>
           </div>
         </div>
 
-        <form onSubmit={handleSave} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-5">
-
-          {/* Mode selector */}
-          <div>
-            <label className={labelCls}>Modalidad de pago</label>
-            <div className="grid grid-cols-2 gap-2">
-              {['monthly', 'biweekly'].map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setMode(m)}
-                  className={`py-3 rounded-xl text-sm font-semibold border-2 transition
-                    ${mode === m ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 text-slate-600 hover:border-gray-300'}`}
-                >
-                  {m === 'monthly' ? 'Mensual' : 'Quincenal'}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {mode === 'monthly' && (
+        <Card>
+          <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div>
-              <label className={labelCls}>Día de pago mensual</label>
-              <select value={payDay} onChange={(e) => setPayDay(Number(e.target.value))} className={inputCls}>
-                {DAYS.map((d) => <option key={d} value={d}>Día {d}</option>)}
-              </select>
-              <p className="text-xs text-slate-400 mt-1.5">Ej: si te pagan el 30 de cada mes, selecciona día 30.</p>
+              <span style={lbl}>Modalidad de pago</span>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                {[['monthly','Mensual'],['biweekly','Quincenal']].map(([m, l]) => (
+                  <button key={m} type="button" onClick={() => setMode(m)} style={{
+                    padding: '12px 0', borderRadius: 'var(--fo-r-md)', fontSize: 14, fontWeight: 600,
+                    cursor: 'pointer', fontFamily: 'inherit',
+                    background: mode === m ? 'var(--fo-accent-soft)' : 'var(--fo-surface-2)',
+                    border: `2px solid ${mode === m ? 'var(--fo-accent-line)' : 'var(--fo-line)'}`,
+                    color: mode === m ? 'var(--fo-accent-fg)' : 'var(--fo-fg-muted)',
+                  }}>{l}</button>
+                ))}
+              </div>
             </div>
-          )}
 
-          {mode === 'biweekly' && (
-            <>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={labelCls}>1.ª quincena (día)</label>
-                  <select value={firstQuincena} onChange={(e) => setFirstQuincena(Number(e.target.value))} className={inputCls}>
-                    {DAYS.slice(0, 15).map((d) => <option key={d} value={d}>Día {d}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className={labelCls}>2.ª quincena (día)</label>
-                  <select value={secondQuincena} onChange={(e) => setSecondQuincena(Number(e.target.value))} className={inputCls}>
-                    {DAYS.slice(14).map((d) => <option key={d} value={d}>Día {d}</option>)}
-                  </select>
-                </div>
-              </div>
+            {mode === 'monthly' && (
               <div>
-                <label className={labelCls}>% del ingreso en la 1.ª quincena — {biweeklyPct}%</label>
-                <input
-                  type="range" min="10" max="90" step="5"
-                  value={biweeklyPct}
-                  onChange={(e) => setBiweeklyPct(Number(e.target.value))}
-                  className="w-full accent-emerald-500"
-                />
-                <div className="flex justify-between text-[11px] text-slate-400 mt-1">
-                  <span>1.ª quincena: {biweeklyPct}%</span>
-                  <span>2.ª quincena: {100 - biweeklyPct}%</span>
-                </div>
+                <span style={lbl}>Día de pago mensual</span>
+                <select value={payDay} onChange={e => setPayDay(Number(e.target.value))} style={sel}>
+                  {DAYS.map(d => <option key={d} value={d}>Día {d}</option>)}
+                </select>
+                <p style={{ fontSize: 11, color: 'var(--fo-fg-dim)', marginTop: 6 }}>Ej: si te pagan el 30, selecciona día 30.</p>
               </div>
-            </>
-          )}
+            )}
 
-          <button
-            type="submit"
-            disabled={saving}
-            className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition
-              ${success ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm'}
-              disabled:opacity-50`}
-          >
-            {saving ? <Spinner size="sm" /> : success ? '✓ Guardado' : 'Guardar configuración'}
-          </button>
-        </form>
+            {mode === 'biweekly' && (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <div>
+                    <span style={lbl}>1.ª quincena (día)</span>
+                    <select value={firstQuincena} onChange={e => setFirst(Number(e.target.value))} style={sel}>
+                      {DAYS.slice(0, 15).map(d => <option key={d} value={d}>Día {d}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <span style={lbl}>2.ª quincena (día)</span>
+                    <select value={secondQuincena} onChange={e => setSecond(Number(e.target.value))} style={sel}>
+                      {DAYS.slice(14).map(d => <option key={d} value={d}>Día {d}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <span style={lbl}>% del ingreso en la 1.ª quincena — {biweeklyPct}%</span>
+                  <input type="range" min="10" max="90" step="5" value={biweeklyPct}
+                    onChange={e => setBiweeklyPct(Number(e.target.value))}
+                    style={{ width: '100%', accentColor: 'var(--fo-accent)' }}/>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+                    <span style={{ fontSize: 11, color: 'var(--fo-fg-dim)' }}>1.ª: {biweeklyPct}%</span>
+                    <span style={{ fontSize: 11, color: 'var(--fo-fg-dim)' }}>2.ª: {100 - biweeklyPct}%</span>
+                  </div>
+                </div>
+              </>
+            )}
 
+            <Button type="submit" full size="lg" disabled={saving}
+              style={success ? { background: 'var(--fo-pos-soft)', color: 'var(--fo-pos)', boxShadow: 'none', border: '1px solid var(--fo-pos)' } : {}}>
+              {saving ? <Spinner size="sm"/> : success ? '✓ Guardado' : 'Guardar configuración'}
+            </Button>
+          </form>
+        </Card>
       </div>
     </AppLayout>
   )
