@@ -321,7 +321,7 @@ export default function Onboarding() {
             <button
               onClick={() => setStep(1)}
               disabled={!incomeNum}
-              className="flex items-center gap-2 px-8 py-4 bg-emerald-500 text-white font-bold rounded-2xl hover:bg-emerald-600 transition disabled:opacity-40 text-base shadow-sm"
+              className="flex items-center justify-center gap-2 w-48 py-4 bg-emerald-500 text-white font-bold rounded-2xl hover:bg-emerald-600 transition disabled:opacity-40 text-base shadow-sm"
             >
               Continuar
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
