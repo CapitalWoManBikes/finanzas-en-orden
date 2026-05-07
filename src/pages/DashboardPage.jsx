@@ -69,11 +69,13 @@ export default function DashboardPage() {
   const savingsRate = incomeVal > 0 ? Math.round((totalSaved / incomeVal) * 100) : 0
   const spendRate = incomeVal > 0 ? Math.round((totalSpent / incomeVal) * 100) : 0
 
+  const hasActivity = transactions.length > 0
+
   const alerts = []
   if (!income) alerts.push({ type: 'warning', msg: 'No tienes ingreso registrado para este mes.', link: '/ingresos', linkLabel: 'Registrar' })
-  if (spendRate > 90) alerts.push({ type: 'danger', msg: `Llevas el ${spendRate}% del ingreso gastado este mes.` })
-  if (savingsRate < 10 && incomeVal > 0) alerts.push({ type: 'warning', msg: 'Tu tasa de ahorro es menor al 10%.' })
-  if (available > 0 && incomeVal > 0) alerts.push({ type: 'success', msg: `Tienes ${formatCOP(available)} disponibles. ¡Considera ahorrar!` })
+  if (hasActivity && spendRate > 90) alerts.push({ type: 'danger', msg: `Llevas el ${spendRate}% del ingreso gastado este mes.` })
+  if (hasActivity && savingsRate < 10) alerts.push({ type: 'warning', msg: 'Tu tasa de ahorro es menor al 10%. Revisa tus gastos.' })
+  if (hasActivity && savingsRate >= 15) alerts.push({ type: 'success', msg: `¡Excelente! Llevas un ${savingsRate}% de ahorro este mes.` })
 
   const byCategory = {}
   transactions.forEach((t) => { byCategory[t.category] = (byCategory[t.category] || 0) + t.amount })
@@ -150,13 +152,15 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Daily Widget */}
-        <DailyWidget
-          income={income}
-          budget={budget}
-          transactions={transactions}
-          paymentConfig={userData?.paymentConfig}
-        />
+        {/* Daily Widget — solo si hay ingreso y presupuesto diario configurado */}
+        {income && budget?.dailySpendingBudget > 0 && (
+          <DailyWidget
+            income={income}
+            budget={budget}
+            transactions={transactions}
+            paymentConfig={userData?.paymentConfig}
+          />
+        )}
 
         {/* KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
