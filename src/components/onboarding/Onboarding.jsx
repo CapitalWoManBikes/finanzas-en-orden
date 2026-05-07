@@ -1,17 +1,46 @@
 import { useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { setMonthlyIncome, setMonthlyBudget, addDefaultExpense, updateUser } from '../../lib/firestore'
-import { DEFAULT_EXPENSES, MONTHS, currentMonth, currentYear, formatCOP } from '../../utils/format'
+import { MONTHS, currentMonth, currentYear, formatCOP } from '../../utils/format'
 import Spinner from '../ui/Spinner'
 
 const STEPS = ['Ingreso', 'Gastos base', 'Distribución']
 
-function calcSuggested(expenses) {
+// Porcentajes objetivo recomendados
+const TARGETS = {
+  fixedExpenses: { pct: 0.52, label: 'Gastos fijos', dot: 'bg-blue-400', bar: 'bg-blue-400', badge: 'bg-blue-50 text-blue-700' },
+  savings:       { pct: 0.15, label: 'Ahorro',       dot: 'bg-violet-400', bar: 'bg-violet-400', badge: 'bg-violet-50 text-violet-700' },
+  dailySpending: { pct: 0.33, label: 'G. diario',    dot: 'bg-amber-400', bar: 'bg-amber-400', badge: 'bg-amber-50 text-amber-700' },
+}
+
+// Redondea al múltiplo de 1000 más cercano
+const r1k = (n) => Math.round(n / 1000) * 1000
+
+// Genera gastos sugeridos proporcionales al ingreso
+function generateSuggestedExpenses(income) {
+  return [
+    { name: 'Arriendo',            amount: r1k(income * 0.30), category: 'Vivienda',      accountType: 'fixedExpenses', expenseType: 'fijo',     isActive: true,  isRecurring: true },
+    { name: 'Agua',                amount: r1k(income * 0.016), category: 'Servicios',    accountType: 'fixedExpenses', expenseType: 'fijo',     isActive: true,  isRecurring: true },
+    { name: 'Luz',                 amount: r1k(income * 0.016), category: 'Servicios',    accountType: 'fixedExpenses', expenseType: 'fijo',     isActive: true,  isRecurring: true },
+    { name: 'Gas',                 amount: r1k(income * 0.010), category: 'Servicios',    accountType: 'fixedExpenses', expenseType: 'fijo',     isActive: true,  isRecurring: true },
+    { name: 'Internet',            amount: r1k(income * 0.018), category: 'Servicios',    accountType: 'fixedExpenses', expenseType: 'fijo',     isActive: true,  isRecurring: true },
+    { name: 'Celular',             amount: r1k(income * 0.016), category: 'Servicios',    accountType: 'fixedExpenses', expenseType: 'fijo',     isActive: true,  isRecurring: true },
+    { name: 'Transporte',          amount: r1k(income * 0.07),  category: 'Transporte',   accountType: 'fixedExpenses', expenseType: 'fijo',     isActive: true,  isRecurring: true },
+    { name: 'Deudas',              amount: r1k(income * 0.05),  category: 'Deudas',       accountType: 'fixedExpenses', expenseType: 'deuda',    isActive: false, isRecurring: true },
+    { name: 'Alimentación',        amount: r1k(income * 0.20),  category: 'Alimentación', accountType: 'dailySpending', expenseType: 'variable', isActive: true,  isRecurring: true },
+    { name: 'Aseo personal',       amount: r1k(income * 0.05),  category: 'Personal',     accountType: 'dailySpending', expenseType: 'variable', isActive: true,  isRecurring: true },
+    { name: 'Insumos hogar',       amount: r1k(income * 0.05),  category: 'Hogar',        accountType: 'dailySpending', expenseType: 'variable', isActive: true,  isRecurring: true },
+    { name: 'Suscripciones',       amount: r1k(income * 0.02),  category: 'Ocio',         accountType: 'dailySpending', expenseType: 'fijo',     isActive: false, isRecurring: true },
+    { name: 'Fondo de emergencia', amount: r1k(income * 0.10),  category: 'Ahorro',       accountType: 'savings',       expenseType: 'ahorro',   isActive: true,  isRecurring: true },
+    { name: 'Ahorro meta',         amount: r1k(income * 0.05),  category: 'Ahorro',       accountType: 'savings',       expenseType: 'ahorro',   isActive: false, isRecurring: true },
+  ]
+}
+
+function calcConfigured(expenses) {
   const sum = { fixedExpenses: 0, savings: 0, dailySpending: 0 }
   expenses.forEach((e) => {
-    if (e.isActive && e.amount > 0 && sum[e.accountType] !== undefined) {
+    if (e.isActive && e.amount > 0 && sum[e.accountType] !== undefined)
       sum[e.accountType] += e.amount
-    }
   })
   return sum
 }
@@ -25,7 +54,7 @@ export default function Onboarding() {
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
   const [income, setIncome] = useState('')
-  const [expenses, setExpenses] = useState(DEFAULT_EXPENSES.map((e) => ({ ...e })))
+  const [expenses, setExpenses] = useState([])
   const [budget, setBudget] = useState({ fixedExpenses: '', savings: '', dailySpending: '' })
 
   const month = currentMonth()
@@ -45,12 +74,19 @@ export default function Onboarding() {
 
   const removeExpense = (i) => setExpenses(expenses.filter((_, idx) => idx !== i))
 
+  // Al pasar al step 1: genera gastos sugeridos basados en el ingreso
+  const goToExpenses = () => {
+    setExpenses(generateSuggestedExpenses(incomeNum))
+    setStep(1)
+  }
+
+  // Al pasar al step 2: precalcula distribución desde gastos configurados
   const goToDistribution = () => {
-    const suggested = calcSuggested(expenses)
+    const configured = calcConfigured(expenses)
     setBudget({
-      fixedExpenses: suggested.fixedExpenses || '',
-      savings: suggested.savings || '',
-      dailySpending: suggested.dailySpending || '',
+      fixedExpenses: configured.fixedExpenses || '',
+      savings: configured.savings || '',
+      dailySpending: configured.dailySpending || '',
     })
     setStep(2)
   }
@@ -77,7 +113,7 @@ export default function Onboarding() {
     }
   }
 
-  const suggested = calcSuggested(expenses)
+  const configured = calcConfigured(expenses)
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center lg:justify-center lg:p-6">
@@ -91,15 +127,10 @@ export default function Onboarding() {
             </div>
             <h1 className="text-lg font-bold text-white">Configura tus finanzas</h1>
           </div>
-
-          {/* Step indicator — barra de progreso + labels */}
           <div className="space-y-2">
             <div className="flex gap-1.5">
               {STEPS.map((_, i) => (
-                <div
-                  key={i}
-                  className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= step ? 'bg-white' : 'bg-white/30'}`}
-                />
+                <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= step ? 'bg-white' : 'bg-white/30'}`} />
               ))}
             </div>
             <div className="flex justify-between">
@@ -122,7 +153,6 @@ export default function Onboarding() {
                 <h2 className="text-xl font-bold text-slate-900">¿Cuánto ganas al mes?</h2>
                 <p className="text-slate-500 text-sm mt-1">Ingresa tu salario o ingreso mensual principal.</p>
               </div>
-
               <div>
                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
                   Ingreso — {MONTHS[month - 1]} {year}
@@ -130,8 +160,7 @@ export default function Onboarding() {
                 <div className={inputBase}>
                   <span className={`${inputPrefix} text-base`}>$</span>
                   <input
-                    type="number"
-                    min="0"
+                    type="number" min="0"
                     value={income}
                     onChange={(e) => setIncome(e.target.value)}
                     onFocus={() => setIncome('')}
@@ -143,35 +172,69 @@ export default function Onboarding() {
                   <p className="text-emerald-600 font-semibold mt-2 text-sm">{formatCOP(incomeNum)}</p>
                 )}
               </div>
+
+              {/* Preview de distribución */}
+              {incomeNum > 0 && (
+                <div className="bg-slate-50 rounded-2xl p-4 space-y-3">
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Distribución sugerida</p>
+                  {Object.entries(TARGETS).map(([key, t]) => (
+                    <div key={key} className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.dot}`} />
+                        <span className="text-xs text-slate-600 font-medium">{t.label}</span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${t.badge}`}>
+                          {Math.round(t.pct * 100)}%
+                        </span>
+                        <span className="text-xs font-bold text-slate-700 w-24 text-right">{formatCOP(r1k(incomeNum * t.pct))}</span>
+                      </div>
+                    </div>
+                  ))}
+                  <p className="text-[10px] text-slate-400 pt-1">Los valores se autocompletarán en el siguiente paso.</p>
+                </div>
+              )}
             </div>
           )}
 
-          {/* Step 1: Default expenses */}
+          {/* Step 1: Gastos base */}
           {step === 1 && (
             <div className="space-y-4">
               <div>
                 <h2 className="text-xl font-bold text-slate-900">Gastos recurrentes</h2>
-                <p className="text-slate-500 text-sm mt-1">Edita, activa o desactiva según tu situación real.</p>
+                <p className="text-slate-500 text-sm mt-1">Valores calculados para <span className="font-semibold text-emerald-600">{formatCOP(incomeNum)}</span>. Edítalos libremente.</p>
               </div>
 
-              {/* Suggested distribution preview */}
+              {/* Recomendado vs configurado */}
               <div className="grid grid-cols-3 gap-2">
-                {[
-                  { key: 'fixedExpenses', label: 'G. fijos', color: 'bg-blue-50 text-blue-700' },
-                  { key: 'savings', label: 'Ahorro', color: 'bg-violet-50 text-violet-700' },
-                  { key: 'dailySpending', label: 'G. diario', color: 'bg-amber-50 text-amber-700' },
-                ].map(({ key, label, color }) => (
-                  <div key={key} className={`rounded-xl p-3 text-center ${color}`}>
-                    <p className="text-[10px] font-semibold uppercase tracking-wide opacity-70 mb-0.5">{label}</p>
-                    <p className="font-bold text-xs">{formatCOP(suggested[key])}</p>
-                  </div>
-                ))}
+                {Object.entries(TARGETS).map(([key, t]) => {
+                  const recommended = r1k(incomeNum * t.pct)
+                  const conf = configured[key]
+                  const pct = recommended > 0 ? Math.min(Math.round((conf / recommended) * 100), 100) : 0
+                  const over = conf > recommended * 1.1
+                  return (
+                    <div key={key} className="bg-gray-50 rounded-xl p-3">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <span className={`w-1.5 h-1.5 rounded-full ${t.dot}`} />
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide truncate">{t.label}</p>
+                      </div>
+                      <p className="text-xs font-bold text-slate-800">{formatCOP(conf)}</p>
+                      <p className="text-[10px] text-slate-400">de {formatCOP(recommended)}</p>
+                      <div className="mt-1.5 w-full bg-gray-200 rounded-full h-1">
+                        <div
+                          className={`h-1 rounded-full transition-all ${over ? 'bg-red-400' : t.bar}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
 
-              <div className="space-y-2 max-h-72 overflow-y-auto">
+              {/* Lista de gastos */}
+              <div className="space-y-2">
                 {expenses.map((exp, i) => (
                   <div key={i} className={`p-3 border rounded-xl transition ${exp.isActive ? 'border-gray-200 bg-white' : 'border-gray-100 bg-gray-50 opacity-50'}`}>
-                    {/* Línea 1: checkbox + nombre + X */}
                     <div className="flex items-center gap-3 mb-2">
                       <button
                         onClick={() => updateExpense(i, 'isActive', !exp.isActive)}
@@ -200,7 +263,6 @@ export default function Onboarding() {
                         </svg>
                       </button>
                     </div>
-                    {/* Línea 2: tipo de cuenta + monto */}
                     <div className="flex items-center gap-2 pl-8">
                       <select
                         value={exp.accountType}
@@ -214,8 +276,7 @@ export default function Onboarding() {
                       <div className="flex items-center border border-gray-200 rounded-lg focus-within:ring-1 focus-within:ring-emerald-500 overflow-hidden bg-white flex-shrink-0">
                         <span className="px-2 text-gray-400 text-xs font-semibold border-r border-gray-200 bg-gray-50 py-1.5 flex-shrink-0">$</span>
                         <input
-                          type="number"
-                          min="0"
+                          type="number" min="0"
                           value={exp.amount}
                           onChange={(e) => updateExpense(i, 'amount', e.target.value)}
                           onFocus={() => { const u = [...expenses]; u[i] = { ...u[i], amount: '' }; setExpenses(u) }}
@@ -239,7 +300,7 @@ export default function Onboarding() {
             </div>
           )}
 
-          {/* Step 2: Budget distribution */}
+          {/* Step 2: Distribución */}
           {step === 2 && (
             <div className="space-y-5">
               <div>
@@ -253,42 +314,35 @@ export default function Onboarding() {
               </div>
 
               <div className="space-y-4">
-                {[
-                  { key: 'fixedExpenses', label: 'Gastos fijos', dot: 'bg-blue-400' },
-                  { key: 'savings', label: 'Ahorro', dot: 'bg-violet-400' },
-                  { key: 'dailySpending', label: 'Gasto diario', dot: 'bg-amber-400' },
-                ].map(({ key, label, dot }) => {
-                  const sug = suggested[key]
-                  const pct = incomeNum > 0 ? Math.round((sug / incomeNum) * 100) : 0
+                {Object.entries(TARGETS).map(([key, t]) => {
+                  const recommended = r1k(incomeNum * t.pct)
+                  const pct = incomeNum > 0 ? Math.round((recommended / incomeNum) * 100) : 0
                   return (
                     <div key={key}>
                       <div className="flex justify-between items-center mb-1.5">
                         <div className="flex items-center gap-2">
-                          <span className={`w-2 h-2 rounded-full ${dot}`} />
-                          <label className="text-sm font-semibold text-slate-700">{label}</label>
+                          <span className={`w-2 h-2 rounded-full ${t.dot}`} />
+                          <label className="text-sm font-semibold text-slate-700">{t.label}</label>
                         </div>
-                        {sug > 0 && (
-                          <span className="text-xs text-slate-400">
-                            Sugerido: <span className="font-semibold text-slate-600">{formatCOP(sug)}</span>
-                            <span className="text-emerald-500 ml-1">({pct}%)</span>
-                          </span>
-                        )}
+                        <span className="text-xs text-slate-400">
+                          Sugerido: <span className="font-semibold text-slate-600">{formatCOP(recommended)}</span>
+                          <span className="text-emerald-500 ml-1">({pct}%)</span>
+                        </span>
                       </div>
                       <div className={inputBase}>
                         <span className={inputPrefix}>$</span>
                         <input
-                          type="number"
-                          min="0"
+                          type="number" min="0"
                           value={budget[key]}
                           onChange={(e) => setBudget({ ...budget, [key]: e.target.value })}
                           onFocus={() => setBudget((b) => ({ ...b, [key]: '' }))}
                           className={inputField}
                           placeholder="0"
                         />
-                        {sug > 0 && String(budget[key]) !== String(sug) && (
+                        {String(budget[key]) !== String(recommended) && (
                           <button
                             type="button"
-                            onClick={() => setBudget({ ...budget, [key]: sug })}
+                            onClick={() => setBudget({ ...budget, [key]: recommended })}
                             className="flex-shrink-0 text-xs text-emerald-600 font-semibold bg-emerald-50 px-3 py-1 mr-2 rounded-lg hover:bg-emerald-100 transition"
                           >
                             Usar
@@ -319,7 +373,7 @@ export default function Onboarding() {
 
           {step === 0 && (
             <button
-              onClick={() => setStep(1)}
+              onClick={goToExpenses}
               disabled={!incomeNum}
               className="w-48 py-4 bg-emerald-500 text-white font-bold rounded-2xl hover:bg-emerald-600 transition disabled:opacity-40 text-base shadow-sm"
             >
@@ -329,28 +383,18 @@ export default function Onboarding() {
           {step === 1 && (
             <button
               onClick={goToDistribution}
-              className="flex items-center gap-1.5 px-6 py-2.5 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition text-sm"
+              className="w-48 py-4 bg-emerald-500 text-white font-bold rounded-2xl hover:bg-emerald-600 transition text-base shadow-sm"
             >
               Continuar
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
             </button>
           )}
           {step === 2 && (
             <button
               onClick={finish}
               disabled={loading || remaining < 0}
-              className="flex items-center gap-1.5 px-6 py-2.5 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition disabled:opacity-40 text-sm"
+              className="w-48 py-4 bg-emerald-500 text-white font-bold rounded-2xl hover:bg-emerald-600 transition disabled:opacity-40 text-base shadow-sm flex items-center justify-center"
             >
-              {loading ? <Spinner size="sm" /> : (
-                <>
-                  Empezar
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </>
-              )}
+              {loading ? <Spinner size="sm" /> : 'Empezar'}
             </button>
           )}
         </div>
