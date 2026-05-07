@@ -1,17 +1,32 @@
 # Finanzas en Orden
 
-App de finanzas personales con React + Firebase. Registra ingresos, controla gastos y visualiza tu historial mes a mes.
+App de finanzas personales — React + Firebase. Control de ingresos, gastos y presupuesto diario.
+
+## Versiones
+
+| Tag | Descripción |
+|-----|-------------|
+| `v1.0.0` | Versión estable — sistema fo/ migrado completo, presupuesto diario |
 
 ## Stack
 
-- React + Vite
-- Tailwind CSS v4
+- React 19 + Vite
+- Tailwind CSS v4 (`@import "tailwindcss"`, sin config.js)
 - Firebase Auth (email/password + Google)
 - Firebase Firestore
-- React Router DOM
+- React Router DOM v7
 - Recharts
 
-## Instalación local
+## Sistema de diseño
+
+Componentes propios en `src/components/fo/`:
+- `base.jsx` — Card, Button, Input, Chip, KPI, ProgressBar, Money, SectionHeader
+- `layout.jsx` — Sidebar, MobileHeader, MobileTabBar, AppShell, Logo, Ico
+- `index.js` — re-exports
+
+Tokens CSS en `src/styles/tokens.css`. Tema oscuro activado con clase `.fo-app` en `<body>`.
+
+## Instalación
 
 ```bash
 git clone <repo-url>
@@ -19,7 +34,7 @@ cd "SISTEMA FINANZAS"
 npm install
 ```
 
-Crea el archivo `.env` con tus credenciales Firebase:
+Crear `.env`:
 
 ```env
 VITE_FIREBASE_API_KEY=
@@ -34,14 +49,44 @@ VITE_FIREBASE_APP_ID=
 npm run dev
 ```
 
+## Estructura
+
+```
+src/
+├── components/
+│   ├── fo/            # Sistema de diseño (base.jsx, layout.jsx, index.js)
+│   ├── dashboard/     # DailyWidget
+│   ├── onboarding/    # Flujo inicial
+│   ├── layout/        # AppLayout
+│   ├── auth/          # ProtectedRoute
+│   └── ui/            # Spinner
+├── context/           # AuthContext
+├── hooks/             # useFinance
+├── lib/               # firebase.js, firestore.js
+├── pages/             # Login, Register, Dashboard, Gastos, Ingresos, etc.
+├── styles/            # tokens.css
+└── utils/             # format.js, dailyBudget.js
+```
+
 ## Firebase
 
-1. Crear proyecto en [Firebase Console](https://console.firebase.google.com)
-2. Activar **Authentication** → Email/Password y Google
-3. Activar **Firestore Database**
-4. Copiar credenciales a `.env`
+1. Crear proyecto en Firebase Console
+2. Activar Authentication → Email/Password + Google
+3. Activar Firestore Database
+4. Copiar credenciales al `.env`
 
-### Reglas Firestore
+### Estructura Firestore
+
+```
+users/{uid}
+  └── initialSetup/defaultExpenses/{id}
+  └── monthlyIncome/{monthId}
+  └── monthlyBudgets/{monthId}
+  └── transactions/{id}
+  └── monthlySummaries/{monthId}
+```
+
+### Reglas
 
 ```
 rules_version = '2';
@@ -57,26 +102,21 @@ service cloud.firestore {
 }
 ```
 
-## Despliegue en Netlify
+## Despliegue Netlify
 
-1. Conectar repo en [Netlify](https://netlify.com)
-2. Build command: `npm run build`
-3. Publish directory: `dist`
-4. Agregar variables de entorno en Netlify Dashboard
-5. El archivo `netlify.toml` ya está configurado para SPA routing
+- Build command: `npm run build`
+- Publish directory: `dist`
+- `netlify.toml` ya configurado para SPA routing
+- Agregar variables `.env` en Netlify Dashboard
 
-## Estructura
+## Funcionalidades v1.0
 
-```
-src/
-├── components/
-│   ├── auth/       # ProtectedRoute
-│   ├── layout/     # Sidebar, AppLayout
-│   ├── onboarding/ # Onboarding flow
-│   └── ui/         # Spinner
-├── context/        # AuthContext
-├── hooks/          # useFinance
-├── lib/            # firebase.js, firestore.js
-├── pages/          # Login, Register, Dashboard, Gastos, etc.
-└── utils/          # format.js, constantes
-```
+- Autenticación email/password + Google
+- Onboarding financiero (ingreso → gastos base → distribución)
+- Dashboard con KPIs, gráfica y alertas automáticas
+- Presupuesto diario con estado visual (verde/amarillo/rojo)
+- Configuración modalidad de pago (mensual / quincenal)
+- CRUD completo de gastos con filtros
+- Registro de ingresos por mes/año
+- Gastos base reutilizables agrupados por cuenta
+- Historial mensual con gráfica de evolución (AreaChart)
