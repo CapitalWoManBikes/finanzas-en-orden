@@ -4,37 +4,22 @@ import AppLayout from '../components/layout/AppLayout'
 import { getAllMonthlySummaries } from '../lib/firestore'
 import { useFinance } from '../hooks/useFinance'
 import { formatCOP, MONTHS } from '../utils/format'
-import {
-  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-} from 'recharts'
+import { Card, Chip, SectionHeader, Money, ProgressBar, Ico, ICONS } from '../components/fo'
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import Spinner from '../components/ui/Spinner'
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
   return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-lg p-3 text-xs">
-      <p className="font-bold text-slate-700 mb-2">{label}</p>
-      {payload.map((p) => (
-        <div key={p.name} className="flex items-center gap-2 mb-1">
-          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
-          <span className="text-slate-500">{p.name}:</span>
-          <span className="font-semibold text-slate-700">{formatCOP(p.value)}</span>
+    <div style={{ background: 'var(--fo-surface-2)', border: '1px solid var(--fo-line)', borderRadius: 12, padding: '10px 14px', fontSize: 12 }}>
+      <p style={{ fontWeight: 600, marginBottom: 6, color: 'var(--fo-fg)' }}>{label}</p>
+      {payload.map(p => (
+        <div key={p.name} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+          <span style={{ width: 8, height: 8, borderRadius: 999, background: p.color, display: 'inline-block' }}/>
+          <span style={{ color: 'var(--fo-fg-muted)' }}>{p.name}:</span>
+          <span style={{ fontWeight: 600, color: 'var(--fo-fg)' }}>{formatCOP(p.value)}</span>
         </div>
       ))}
-    </div>
-  )
-}
-
-function StatPill({ label, value, color = 'emerald' }) {
-  const colorMap = {
-    emerald: 'text-emerald-600',
-    red: 'text-red-500',
-    blue: 'text-blue-600',
-  }
-  return (
-    <div className="text-right">
-      <p className={`font-bold text-sm ${colorMap[color]}`}>{value}</p>
-      <p className="text-[10px] text-slate-400 mt-0.5">{label}</p>
     </div>
   )
 }
@@ -42,192 +27,133 @@ function StatPill({ label, value, color = 'emerald' }) {
 export default function HistorialPage() {
   const { user } = useAuth()
   const [summaries, setSummaries] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [selected, setSelected] = useState(null)
+  const [loading, setLoading]     = useState(true)
+  const [selected, setSelected]   = useState(null)
   const { transactions } = useFinance(selected?.month, selected?.year)
 
   useEffect(() => {
-    const load = async () => {
-      const data = await getAllMonthlySummaries(user.uid)
-      setSummaries(data)
-      setLoading(false)
-    }
-    load()
+    getAllMonthlySummaries(user.uid).then(data => { setSummaries(data); setLoading(false) })
   }, [user])
 
-  const chartData = [...summaries].reverse().map((s) => ({
+  const chartData = [...summaries].reverse().map(s => ({
     name: `${MONTHS[s.month - 1].slice(0, 3)} ${String(s.year).slice(2)}`,
-    Ingreso: s.income ?? 0,
-    Gastado: s.totalSpent ?? 0,
-    Ahorro: s.totalSaved ?? 0,
+    Ingreso: s.income ?? 0, Gastado: s.totalSpent ?? 0, Ahorro: s.totalSaved ?? 0,
   }))
 
   const best = summaries.length > 0
-    ? summaries.reduce((best, s) => ((s.savingsRate ?? 0) > (best.savingsRate ?? 0) ? s : best), summaries[0])
+    ? summaries.reduce((b, s) => ((s.savingsRate ?? 0) > (b.savingsRate ?? 0) ? s : b), summaries[0])
     : null
 
   return (
     <AppLayout>
-      <div className="max-w-5xl mx-auto space-y-5">
-
-        {/* Header */}
-        <div>
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1">Análisis</p>
-          <h1 className="text-2xl font-bold text-slate-900">Historial mensual</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Evolución de tus finanzas mes a mes.</p>
-        </div>
+      <div style={{ maxWidth: 960, margin: '0 auto' }}>
+        <SectionHeader overline="Análisis" title="Historial mensual" subtitle="Evolución de tus finanzas mes a mes."/>
 
         {loading ? (
-          <div className="flex justify-center py-16">
-            <Spinner size="lg" />
-          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}><Spinner size="lg"/></div>
         ) : summaries.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm py-20 text-center text-slate-400">
-            <svg className="w-12 h-12 mx-auto mb-4 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <p className="font-semibold text-slate-500">Sin historial disponible</p>
-            <p className="text-sm mt-1">Registra ingresos y gastos para ver tu evolución.</p>
-          </div>
+          <Card style={{ textAlign: 'center', padding: 56 }}>
+            <Ico d={ICONS.hist} size={36} style={{ color: 'var(--fo-fg-dim)', margin: '0 auto 12px' }}/>
+            <p style={{ fontWeight: 600, fontSize: 14 }}>Sin historial disponible</p>
+            <p style={{ fontSize: 13, color: 'var(--fo-fg-dim)', marginTop: 4 }}>Registra ingresos y gastos para ver tu evolución.</p>
+          </Card>
         ) : (
           <>
-            {/* Summary stats */}
-            {summaries.length > 0 && (
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">
-                  <p className="text-2xl font-black text-slate-900">{summaries.length}</p>
-                  <p className="text-xs text-slate-400 mt-1 font-medium">Meses registrados</p>
-                </div>
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">
-                  <p className="text-2xl font-black text-emerald-600">
-                    {Math.round(summaries.reduce((s, m) => s + (m.savingsRate ?? 0), 0) / summaries.length)}%
-                  </p>
-                  <p className="text-xs text-slate-400 mt-1 font-medium">Ahorro promedio</p>
-                </div>
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">
-                  {best && (
-                    <>
-                      <p className="text-sm font-black text-slate-900">{MONTHS[best.month - 1]}</p>
-                      <p className="text-xs text-emerald-600 font-bold">{best.savingsRate ?? 0}% ahorro</p>
-                      <p className="text-xs text-slate-400 mt-0.5 font-medium">Mejor mes</p>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
+            {/* Stats */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 16 }}>
+              <Card style={{ textAlign: 'center' }}>
+                <p className="fo-num" style={{ fontSize: 28, margin: 0 }}>{summaries.length}</p>
+                <p style={{ fontSize: 11, color: 'var(--fo-fg-dim)', marginTop: 4 }}>Meses registrados</p>
+              </Card>
+              <Card style={{ textAlign: 'center' }}>
+                <p className="fo-num" style={{ fontSize: 28, margin: 0, color: 'var(--fo-pos)' }}>
+                  {Math.round(summaries.reduce((s, m) => s + (m.savingsRate ?? 0), 0) / summaries.length)}%
+                </p>
+                <p style={{ fontSize: 11, color: 'var(--fo-fg-dim)', marginTop: 4 }}>Ahorro promedio</p>
+              </Card>
+              <Card style={{ textAlign: 'center' }}>
+                {best && <>
+                  <p style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>{MONTHS[best.month - 1]}</p>
+                  <p style={{ fontSize: 12, color: 'var(--fo-pos)', fontWeight: 600 }}>{best.savingsRate ?? 0}% ahorro</p>
+                  <p style={{ fontSize: 11, color: 'var(--fo-fg-dim)', marginTop: 2 }}>Mejor mes</p>
+                </>}
+              </Card>
+            </div>
 
-            {/* Evolution chart */}
+            {/* Chart */}
             {chartData.length > 1 && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                <div className="mb-5">
-                  <p className="font-bold text-slate-800 text-sm">Evolución financiera</p>
-                  <p className="text-xs text-slate-400 mt-0.5">Ingreso, gasto y ahorro por mes</p>
-                </div>
+              <Card style={{ marginBottom: 16 }}>
+                <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700 }}>Evolución financiera</p>
+                <p style={{ margin: '0 0 18px', fontSize: 11, color: 'var(--fo-fg-dim)' }}>Ingreso, gasto y ahorro por mes</p>
                 <ResponsiveContainer width="100%" height={220}>
                   <AreaChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                     <defs>
-                      <linearGradient id="gIngreso" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.15} />
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="gGastado" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.1} />
-                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="gAhorro" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15} />
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                      </linearGradient>
+                      <linearGradient id="gI" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="oklch(0.74 0.16 160)" stopOpacity={0.25}/><stop offset="95%" stopColor="oklch(0.74 0.16 160)" stopOpacity={0}/></linearGradient>
+                      <linearGradient id="gG" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="oklch(0.70 0.20 20)" stopOpacity={0.2}/><stop offset="95%" stopColor="oklch(0.70 0.20 20)" stopOpacity={0}/></linearGradient>
+                      <linearGradient id="gA" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="oklch(0.66 0.20 255)" stopOpacity={0.25}/><stop offset="95%" stopColor="oklch(0.66 0.20 255)" stopOpacity={0}/></linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1000000).toFixed(1)}M`} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Area type="monotone" dataKey="Ingreso" stroke="#10b981" strokeWidth={2} fill="url(#gIngreso)" dot={false} />
-                    <Area type="monotone" dataKey="Gastado" stroke="#ef4444" strokeWidth={2} fill="url(#gGastado)" dot={false} />
-                    <Area type="monotone" dataKey="Ahorro" stroke="#3b82f6" strokeWidth={2} fill="url(#gAhorro)" dot={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--fo-line)"/>
+                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--fo-fg-dim)' }} axisLine={false} tickLine={false}/>
+                    <YAxis tick={{ fontSize: 10, fill: 'var(--fo-fg-dim)' }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000000).toFixed(1)}M`}/>
+                    <Tooltip content={<CustomTooltip/>}/>
+                    <Area type="monotone" dataKey="Ingreso" stroke="oklch(0.74 0.16 160)" strokeWidth={2} fill="url(#gI)" dot={false}/>
+                    <Area type="monotone" dataKey="Gastado" stroke="oklch(0.70 0.20 20)" strokeWidth={2} fill="url(#gG)" dot={false}/>
+                    <Area type="monotone" dataKey="Ahorro"  stroke="oklch(0.66 0.20 255)" strokeWidth={2} fill="url(#gA)" dot={false}/>
                   </AreaChart>
                 </ResponsiveContainer>
-                <div className="flex gap-5 justify-center mt-3">
-                  {[
-                    { color: '#10b981', label: 'Ingreso' },
-                    { color: '#ef4444', label: 'Gastado' },
-                    { color: '#3b82f6', label: 'Ahorro' },
-                  ].map((l) => (
-                    <div key={l.label} className="flex items-center gap-1.5">
-                      <span className="w-3 h-0.5 rounded-full inline-block" style={{ backgroundColor: l.color }} />
-                      <span className="text-xs text-slate-400 font-medium">{l.label}</span>
+                <div style={{ display: 'flex', gap: 20, justifyContent: 'center', marginTop: 12 }}>
+                  {[['oklch(0.74 0.16 160)','Ingreso'],['oklch(0.70 0.20 20)','Gastado'],['oklch(0.66 0.20 255)','Ahorro']].map(([c,l]) => (
+                    <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ width: 12, height: 2, borderRadius: 999, background: c, display: 'inline-block' }}/>
+                      <span style={{ fontSize: 11, color: 'var(--fo-fg-dim)' }}>{l}</span>
                     </div>
                   ))}
                 </div>
-              </div>
+              </Card>
             )}
 
-            {/* Month cards */}
-            <div className="space-y-2.5">
-              {summaries.map((s) => {
+            {/* Month rows */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {summaries.map(s => {
                 const isOpen = selected?.id === s.id
                 const savRate = s.savingsRate ?? 0
+                const spendPct = Math.min(((s.totalSpent ?? 0) / (s.income || 1)) * 100, 100)
                 return (
-                  <div
-                    key={s.id}
-                    className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-all cursor-pointer
-                      ${isOpen ? 'border-emerald-200' : 'border-gray-100 hover:border-gray-200'}`}
-                  >
-                    <div
-                      className="flex justify-between items-center px-5 py-4 gap-4"
-                      onClick={() => setSelected(isOpen ? null : s)}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2.5 mb-1">
-                          <p className="font-bold text-slate-900">{MONTHS[s.month - 1]} {s.year}</p>
-                          <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold
-                            ${savRate >= 20 ? 'bg-emerald-100 text-emerald-700' :
-                              savRate >= 10 ? 'bg-blue-100 text-blue-700' :
-                              'bg-amber-100 text-amber-700'}`}>
-                            {savRate}% ahorro
-                          </span>
+                  <Card key={s.id} padded={false} style={{ border: isOpen ? '1px solid var(--fo-accent-line)' : undefined, cursor: 'pointer' }}>
+                    <div onClick={() => setSelected(isOpen ? null : s)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', gap: 16 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                          <p style={{ margin: 0, fontWeight: 700, fontSize: 14 }}>{MONTHS[s.month - 1]} {s.year}</p>
+                          <Chip tone={savRate >= 20 ? 'pos' : savRate >= 10 ? 'accent' : 'warn'}>{savRate}% ahorro</Chip>
                         </div>
-                        <div className="w-full bg-gray-100 rounded-full h-1.5">
-                          <div
-                            className={`h-1.5 rounded-full ${
-                              (s.totalSpent / s.income) > 0.9 ? 'bg-red-400' :
-                              (s.totalSpent / s.income) > 0.7 ? 'bg-amber-400' : 'bg-emerald-400'
-                            }`}
-                            style={{ width: `${Math.min((s.totalSpent / (s.income || 1)) * 100, 100)}%` }}
-                          />
-                        </div>
+                        <ProgressBar value={spendPct} tone={spendPct > 90 ? 'neg' : spendPct > 70 ? 'warn' : 'pos'} height={4}/>
                       </div>
-                      <div className="flex gap-5 flex-shrink-0">
-                        <StatPill label="Ingreso" value={formatCOP(s.income)} color="emerald" />
-                        <StatPill label="Gastado" value={formatCOP(s.totalSpent)} color="red" />
-                        <StatPill label="Ahorrado" value={formatCOP(s.totalSaved)} color="blue" />
+                      <div style={{ display: 'flex', gap: 20, flexShrink: 0 }} className="hist-stats">
+                        <style>{`@media(max-width:640px){.hist-stats{display:none!important}}`}</style>
+                        {[['Ingreso', s.income, 'var(--fo-pos)'], ['Gastado', s.totalSpent, 'var(--fo-neg)'], ['Ahorrado', s.totalSaved, 'var(--fo-accent-fg)']].map(([l, v, c]) => (
+                          <div key={l} style={{ textAlign: 'right' }}>
+                            <Money value={v ?? 0} style={{ fontSize: 13, color: c }}/>
+                            <p style={{ margin: '2px 0 0', fontSize: 10, color: 'var(--fo-fg-dim)' }}>{l}</p>
+                          </div>
+                        ))}
                       </div>
-                      <svg
-                        className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
+                      <Ico d="M19 9l-7 7-7-7" size={16} style={{ color: 'var(--fo-fg-dim)', flexShrink: 0, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 200ms' }}/>
                     </div>
-
                     {isOpen && (
-                      <div className="border-t border-gray-100 px-5 py-4">
+                      <div style={{ borderTop: '1px solid var(--fo-line)', padding: '14px 20px' }}>
                         {transactions.length === 0 ? (
-                          <p className="text-sm text-slate-400 text-center py-4">Sin transacciones registradas.</p>
+                          <p style={{ fontSize: 13, color: 'var(--fo-fg-dim)', textAlign: 'center', padding: '12px 0' }}>Sin transacciones registradas.</p>
                         ) : (
                           <>
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">
-                              Transacciones · {transactions.length}
-                            </p>
-                            <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
-                              {transactions.map((t) => (
-                                <div key={t.id} className="flex justify-between items-center py-1.5 gap-3">
-                                  <div className="min-w-0 flex-1">
-                                    <p className="text-sm font-semibold text-slate-700 truncate">{t.name}</p>
-                                    <p className="text-xs text-slate-400">{t.category} · {t.date}</p>
+                            <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--fo-fg-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Transacciones · {transactions.length}</p>
+                            <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                              {transactions.map(t => (
+                                <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--fo-line-soft)' }}>
+                                  <div style={{ minWidth: 0, flex: 1 }}>
+                                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
+                                    <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--fo-fg-dim)' }}>{t.category} · {t.date}</p>
                                   </div>
-                                  <p className="font-bold text-sm text-slate-800 flex-shrink-0">{formatCOP(t.amount)}</p>
+                                  <Money value={t.amount} style={{ fontSize: 13, flexShrink: 0, marginLeft: 12 }}/>
                                 </div>
                               ))}
                             </div>
@@ -235,7 +161,7 @@ export default function HistorialPage() {
                         )}
                       </div>
                     )}
-                  </div>
+                  </Card>
                 )
               })}
             </div>
