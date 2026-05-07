@@ -109,16 +109,16 @@ export default function Onboarding() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Ingreso mensual — {MONTHS[month - 1]} {year}
                 </label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">$</span>
+                <div className="flex items-center border border-gray-200 rounded-xl focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-emerald-500 overflow-hidden bg-white">
+                  <span className="px-4 text-gray-400 font-semibold text-lg border-r border-gray-200 bg-gray-50 py-3 flex-shrink-0">$</span>
                   <input
                     type="number"
                     min="0"
                     value={income}
                     onChange={(e) => setIncome(e.target.value)}
                     onFocus={() => setIncome('')}
-                    className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-lg font-semibold"
-                    placeholder="3000000"
+                    className="flex-1 px-4 py-3 text-lg font-semibold focus:outline-none bg-white"
+                    placeholder="3,000,000"
                   />
                 </div>
                 {incomeNum > 0 && (
@@ -173,15 +173,15 @@ export default function Onboarding() {
                       <option value="savings">Ahorro</option>
                       <option value="dailySpending">G. diario</option>
                     </select>
-                    <div className="relative flex-shrink-0">
-                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                    <div className="flex items-center border border-gray-200 rounded-lg focus-within:ring-1 focus-within:ring-emerald-500 focus-within:border-emerald-500 overflow-hidden flex-shrink-0 bg-white">
+                      <span className="px-2 text-gray-400 text-sm font-medium border-r border-gray-200 bg-gray-50 py-1.5 flex-shrink-0">$</span>
                       <input
                         type="number"
                         min="0"
                         value={exp.amount}
                         onChange={(e) => updateExpense(i, 'amount', e.target.value)}
                         onFocus={(e) => { const updated = [...expenses]; updated[i] = { ...updated[i], amount: '' }; setExpenses(updated) }}
-                        className="w-28 pl-5 pr-2 py-1 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        className="w-24 px-2 py-1.5 text-sm focus:outline-none bg-white"
                       />
                     </div>
                     <button onClick={() => removeExpense(i)} className="text-red-400 hover:text-red-600 text-lg leading-none flex-shrink-0">×</button>
@@ -227,22 +227,22 @@ export default function Onboarding() {
                           </span>
                         )}
                       </div>
-                      <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+                      <div className="flex items-center border border-gray-200 rounded-xl focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-emerald-500 overflow-hidden bg-white">
+                        <span className="px-4 text-gray-400 font-semibold border-r border-gray-200 bg-gray-50 py-3 flex-shrink-0">$</span>
                         <input
                           type="number"
                           min="0"
                           value={budget[key]}
                           onChange={(e) => setBudget({ ...budget, [key]: e.target.value })}
                           onFocus={() => setBudget((b) => ({ ...b, [key]: '' }))}
-                          className="w-full pl-8 pr-28 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          className="flex-1 px-4 py-3 focus:outline-none bg-white min-w-0"
                           placeholder="0"
                         />
                         {sug > 0 && String(budget[key]) !== String(sug) && (
                           <button
                             type="button"
                             onClick={() => setBudget({ ...budget, [key]: sug })}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-emerald-600 hover:text-emerald-700 font-medium bg-emerald-50 px-2 py-1 rounded-lg"
+                            className="flex-shrink-0 text-xs text-emerald-600 hover:text-emerald-700 font-medium bg-emerald-50 px-3 py-1 mr-2 rounded-lg border border-emerald-200"
                           >
                             Usar sugerido
                           </button>
