@@ -1,0 +1,97 @@
+/* ============================================================
+   Finanzas en Orden — Design tokens (Dirección B · Revolut soft)
+   Drop into src/styles/tokens.css and import once at app root.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* ---------- Surfaces (dark) ---------- */
+  --fo-bg:        #07080d;
+  --fo-surface-1: #0e1118;   /* card */
+  --fo-surface-2: #151a25;   /* hover / nested / input */
+  --fo-surface-3: #1c2230;
+  --fo-line:      #1f2533;
+  --fo-line-soft: #161a25;
+
+  /* ---------- Text ---------- */
+  --fo-fg:        #f5f7fb;
+  --fo-fg-muted:  #a8b0c2;
+  --fo-fg-dim:    #767e92;
+  --fo-fg-faint:  #565d70;
+
+  /* ---------- Accent — vivid blue ---------- */
+  --fo-accent:        oklch(0.66 0.20 255);
+  --fo-accent-soft:   oklch(0.66 0.20 255 / 0.16);
+  --fo-accent-line:   oklch(0.66 0.20 255 / 0.40);
+  --fo-accent-fg:     oklch(0.84 0.14 255);
+  --fo-accent-grad:   linear-gradient(135deg, oklch(0.70 0.20 255) 0%, oklch(0.62 0.22 270) 100%);
+  --fo-hero-grad:     linear-gradient(135deg, oklch(0.62 0.22 260) 0%, oklch(0.40 0.20 285) 100%);
+
+  /* ---------- Semantic ---------- */
+  --fo-pos:       oklch(0.74 0.16 160);
+  --fo-pos-soft:  oklch(0.74 0.16 160 / 0.16);
+  --fo-neg:       oklch(0.70 0.20 20);
+  --fo-neg-soft:  oklch(0.70 0.20 20 / 0.16);
+  --fo-warn:      oklch(0.80 0.16 80);
+  --fo-warn-soft: oklch(0.80 0.16 80 / 0.16);
+
+  /* ---------- Radii ---------- */
+  --fo-r-xs: 8px;
+  --fo-r-sm: 12px;
+  --fo-r-md: 16px;
+  --fo-r-lg: 20px;
+  --fo-r-xl: 24px;
+  --fo-r-2xl: 28px;
+
+  /* ---------- Shadows ---------- */
+  --fo-shadow-sm: 0 1px 0 rgba(255,255,255,0.04) inset, 0 2px 6px rgba(0,0,0,0.5);
+  --fo-shadow-md: 0 1px 0 rgba(255,255,255,0.05) inset, 0 16px 40px -12px rgba(0,0,0,0.6);
+  --fo-shadow-lg: 0 1px 0 rgba(255,255,255,0.06) inset, 0 28px 60px -20px oklch(0.55 0.22 260 / 0.45);
+  --fo-shadow-accent: 0 8px 22px -10px var(--fo-accent);
+
+  /* ---------- Spacing scale (use directly when not using Tailwind) ---------- */
+  --fo-s-1: 4px;
+  --fo-s-2: 8px;
+  --fo-s-3: 12px;
+  --fo-s-4: 16px;
+  --fo-s-5: 20px;
+  --fo-s-6: 24px;
+  --fo-s-8: 32px;
+  --fo-s-10: 40px;
+
+  /* ---------- Typography ---------- */
+  --fo-font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --fo-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* ---------- App-wide base. Apply to <body> or app root ---------- */
+.fo-app, body.fo-app {
+  background: var(--fo-bg);
+  color: var(--fo-fg);
+  font-family: var(--fo-font-sans);
+  font-feature-settings: 'cv11', 'ss01', 'ss03';
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.01em;
+}
+
+/* Tabular numerals for any element showing money */
+.tnum, .fo-num { font-variant-numeric: tabular-nums; }
+.fo-num { letter-spacing: -0.025em; font-weight: 700; }
+
+/* Subtle scrollbar */
+.fo-app *::-webkit-scrollbar { width: 6px; height: 6px; }
+.fo-app *::-webkit-scrollbar-thumb { background: var(--fo-line); border-radius: 999px; }
+.fo-app *::-webkit-scrollbar-thumb:hover { background: var(--fo-surface-3); }
+
+/* Animated bar fills (use on .fo-bar-fill) */
+@keyframes fo-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.fo-bar-fill { transform-origin: left; animation: fo-grow 900ms cubic-bezier(.2,.7,.2,1) both; }
+
+/* Focus ring */
+.fo-focus:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--fo-accent-soft);
+  border-color: var(--fo-accent-line);
+}
