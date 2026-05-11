@@ -69,29 +69,29 @@ export function Button({
       boxShadow: 'var(--fo-shadow-accent)',
     },
     soft: {
-      background: 'var(--fo-surface-2)',
+      background: 'var(--fo-surface-3)',
       color: 'var(--fo-fg)',
-      border: '1px solid var(--fo-line)',
+      border: '1px solid rgba(255,255,255,0.10)',
     },
     ghost: {
       background: 'transparent',
-      color: 'var(--fo-fg)',
-      border: '1px solid var(--fo-line)',
+      color: 'var(--fo-fg-muted)',
+      border: '1px solid rgba(255,255,255,0.12)',
     },
     danger: {
-      background: 'var(--fo-neg-soft)',
-      color: 'var(--fo-neg)',
-      border: '1px solid var(--fo-neg-soft)',
+      background: 'rgba(220,60,60,0.15)',
+      color: 'oklch(0.85 0.14 20)',
+      border: '1px solid rgba(220,60,60,0.35)',
     },
     success: {
-      background: 'var(--fo-pos-soft)',
-      color: 'var(--fo-pos)',
-      border: '1px solid var(--fo-pos-soft)',
+      background: 'rgba(46,160,90,0.15)',
+      color: 'oklch(0.88 0.16 160)',
+      border: '1px solid rgba(46,160,90,0.40)',
     },
     icon: {
-      background: 'var(--fo-surface-2)',
+      background: 'var(--fo-surface-3)',
       color: 'var(--fo-fg-muted)',
-      border: '1px solid var(--fo-line)',
+      border: '1px solid rgba(255,255,255,0.08)',
     },
   };
   const v = variants[variant];

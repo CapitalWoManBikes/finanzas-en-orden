@@ -57,13 +57,11 @@ export default function ConfiguracionPage() {
               <span style={lbl}>Modalidad de pago</span>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 {[['monthly','Mensual'],['biweekly','Quincenal']].map(([m, l]) => (
-                  <button key={m} type="button" onClick={() => setMode(m)} style={{
-                    padding: '12px 0', borderRadius: 'var(--fo-r-md)', fontSize: 14, fontWeight: 600,
-                    cursor: 'pointer', fontFamily: 'inherit',
-                    background: mode === m ? 'var(--fo-accent-soft)' : 'var(--fo-surface-2)',
-                    border: `2px solid ${mode === m ? 'var(--fo-accent-line)' : 'var(--fo-line)'}`,
-                    color: mode === m ? 'var(--fo-accent-fg)' : 'var(--fo-fg-muted)',
-                  }}>{l}</button>
+                  <Button key={m} type="button" full
+                    variant={mode === m ? 'primary' : 'soft'}
+                    onClick={() => setMode(m)}>
+                    {l}
+                  </Button>
                 ))}
               </div>
             </div>
@@ -108,7 +106,7 @@ export default function ConfiguracionPage() {
             )}
 
             <Button type="submit" full size="lg" disabled={saving}
-              style={success ? { background: 'var(--fo-pos-soft)', color: 'var(--fo-pos)', boxShadow: 'none', border: '1px solid var(--fo-pos)' } : {}}>
+              variant={success ? 'success' : 'primary'}>
               {saving ? <Spinner size="sm"/> : success ? '✓ Guardado' : 'Guardar configuración'}
             </Button>
           </form>

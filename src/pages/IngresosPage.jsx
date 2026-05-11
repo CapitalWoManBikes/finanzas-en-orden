@@ -74,7 +74,7 @@ export default function IngresosPage() {
                 <Input label="Observaciones (opcional)" value={form.notes}
                   onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Salario, freelance, bonos…"/>
                 <Button type="submit" full size="lg" disabled={saving}
-                  style={success ? { background: 'var(--fo-pos-soft)', color: 'var(--fo-pos)', boxShadow: 'none', border: '1px solid var(--fo-pos)' } : {}}>
+                  variant={success ? 'success' : 'primary'}>
                   {saving ? <Spinner size="sm"/> : success ? '✓ Guardado exitosamente' : current ? 'Actualizar ingreso' : 'Guardar ingreso'}
                 </Button>
               </form>

@@ -109,12 +109,12 @@ export default function GastosBasePage() {
                       </div>
                       <Money value={exp.amount} style={{ fontSize: 13 }}/>
                       <div style={{ display: 'flex', gap: 4 }}>
-                        <button onClick={() => openEdit(exp)} style={{ padding: 6, borderRadius: 8, border: '1px solid var(--fo-line)', background: 'var(--fo-surface-2)', color: 'var(--fo-fg-muted)', cursor: 'pointer' }}>
+                        <Button variant="icon" size="sm" onClick={() => openEdit(exp)} title="Editar">
                           <Ico d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" size={13}/>
-                        </button>
-                        <button onClick={() => handleDelete(exp.id)} style={{ padding: 6, borderRadius: 8, border: '1px solid var(--fo-line)', background: 'var(--fo-surface-2)', color: 'var(--fo-neg)', cursor: 'pointer' }}>
+                        </Button>
+                        <Button variant="danger" size="sm" onClick={() => handleDelete(exp.id)} title="Eliminar">
                           <Ico d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" size={13}/>
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -130,9 +130,9 @@ export default function GastosBasePage() {
           <div style={{ background: 'var(--fo-surface-1)', border: '1px solid var(--fo-line)', borderRadius: 'var(--fo-r-xl)', width: '100%', maxWidth: 460, boxShadow: 'var(--fo-shadow-lg)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 24px', borderBottom: '1px solid var(--fo-line)' }}>
               <p style={{ margin: 0, fontWeight: 700, fontSize: 15 }}>{editing ? 'Editar gasto base' : 'Nuevo gasto base'}</p>
-              <button onClick={() => setShowForm(false)} style={{ width: 32, height: 32, borderRadius: 10, border: '1px solid var(--fo-line)', background: 'var(--fo-surface-2)', color: 'var(--fo-fg-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Button variant="icon" size="sm" type="button" onClick={() => setShowForm(false)} style={{ width: 32, height: 32, borderRadius: 10 }}>
                 <Ico d="M6 18L18 6M6 6l12 12" size={16}/>
-              </button>
+              </Button>
             </div>
             <form onSubmit={handleSave} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
               <Input label="Nombre del gasto" type="text" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ej: Arriendo, Netflix…"/>
