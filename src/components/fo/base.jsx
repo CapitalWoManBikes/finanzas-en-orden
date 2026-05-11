@@ -78,6 +78,21 @@ export function Button({
       color: 'var(--fo-fg)',
       border: '1px solid var(--fo-line)',
     },
+    danger: {
+      background: 'var(--fo-neg-soft)',
+      color: 'var(--fo-neg)',
+      border: '1px solid var(--fo-neg-soft)',
+    },
+    success: {
+      background: 'var(--fo-pos-soft)',
+      color: 'var(--fo-pos)',
+      border: '1px solid var(--fo-pos-soft)',
+    },
+    icon: {
+      background: 'var(--fo-surface-2)',
+      color: 'var(--fo-fg-muted)',
+      border: '1px solid var(--fo-line)',
+    },
   };
   const v = variants[variant];
 

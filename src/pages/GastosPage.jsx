@@ -152,12 +152,12 @@ export default function GastosPage() {
               </div>
               <Money value={t.amount} style={{ fontSize: 14, flexShrink: 0 }}/>
               <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                <button onClick={() => openEdit(t)} style={{ padding: 6, borderRadius: 8, border: '1px solid var(--fo-line)', background: 'var(--fo-surface-2)', color: 'var(--fo-fg-muted)', cursor: 'pointer' }}>
+                <Button variant="icon" size="sm" onClick={() => openEdit(t)} title="Editar">
                   <Ico d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" size={14}/>
-                </button>
-                <button onClick={() => handleDelete(t.id)} style={{ padding: 6, borderRadius: 8, border: '1px solid var(--fo-line)', background: 'var(--fo-surface-2)', color: 'var(--fo-neg)', cursor: 'pointer' }}>
+                </Button>
+                <Button variant="danger" size="sm" onClick={() => handleDelete(t.id)} title="Eliminar">
                   <Ico d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" size={14}/>
-                </button>
+                </Button>
               </div>
             </div>
           ))}
@@ -173,9 +173,9 @@ export default function GastosPage() {
                 <p style={{ margin: 0, fontWeight: 700, fontSize: 15 }}>{editing ? 'Editar gasto' : 'Nuevo gasto'}</p>
                 <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--fo-fg-dim)' }}>Completa los campos</p>
               </div>
-              <button onClick={() => setShowForm(false)} style={{ width: 32, height: 32, borderRadius: 10, border: '1px solid var(--fo-line)', background: 'var(--fo-surface-2)', color: 'var(--fo-fg-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Button variant="icon" size="sm" type="button" onClick={() => setShowForm(false)} style={{ width: 32, height: 32, borderRadius: 10 }}>
                 <Ico d="M6 18L18 6M6 6l12 12" size={16}/>
-              </button>
+              </Button>
             </div>
             <form onSubmit={handleSave} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
