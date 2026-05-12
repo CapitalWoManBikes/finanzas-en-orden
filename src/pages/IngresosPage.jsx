@@ -21,9 +21,14 @@ export default function IngresosPage() {
 
   const load = async () => {
     setLoading(true)
-    const [inc, all] = await Promise.all([getMonthlyIncome(user.uid, month, year), getAllMonthlyIncomes(user.uid)])
-    setCurrent(inc); setForm({ income: inc?.income ?? '', notes: inc?.notes ?? '' }); setHistory(all)
-    setLoading(false)
+    try {
+      const [inc, all] = await Promise.all([getMonthlyIncome(user.uid, month, year), getAllMonthlyIncomes(user.uid)])
+      setCurrent(inc); setForm({ income: inc?.income ?? '', notes: inc?.notes ?? }); setHistory(all)
+    } catch (e) {
+      console.error("Error loading income", e);
+    } finally {
+      setLoading(false)
+    }
   }
   useEffect(() => { load() }, [month, year])
 

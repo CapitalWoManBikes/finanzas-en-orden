@@ -38,7 +38,17 @@ export default function GastosPage() {
   const [form, setForm]         = useState(EMPTY)
   const [filter, setFilter]     = useState({ category: '', accountType: '', search: '' })
 
-  const load = async () => { setLoading(true); setTxs(await getTransactions(user.uid, month, year)); setLoading(false) }
+  const load = async () => {
+    setLoading(true);
+    try {
+      const txs = await getTransactions(user.uid, month, year);
+      setTxs(txs);
+    } catch (e) {
+      console.error("Error loading transactions", e);
+    } finally {
+      setLoading(false);
+    }
+  }
   useEffect(() => { load() }, [month, year])
 
   const openNew  = () => { setEditing(null); setForm(EMPTY); setShowForm(true) }
@@ -135,27 +145,27 @@ export default function GastosPage() {
               <p style={{ margin: '10px 0 0', fontSize: 13 }}>Sin gastos para mostrar</p>
             </div>
           ) : filtered.map((t, i) => (
-            <div key={t.id} style={{
+            <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               padding: '13px 20px', gap: 12,
               borderBottom: i < filtered.length - 1 ? '1px solid var(--fo-line-soft)' : 'none',
             }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ margin: 0, fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                  <span style={{ fontSize: 11, color: 'var(--fo-fg-dim)' }}>{t.date}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 10, color: 'var(--fo-fg-dim)' }}>{t.date}</span>
                   <span style={{ color: 'var(--fo-line)' }}>·</span>
-                  <span style={{ fontSize: 11, color: 'var(--fo-fg-dim)' }}>{t.category}</span>
+                  <span style={{ fontSize: 10, color: 'var(--fo-fg-dim)' }}>{t.category}</span>
                   <span style={{ color: 'var(--fo-line)' }}>·</span>
-                  <Chip tone={ACCT[t.accountType]?.tone ?? 'default'}>{ACCT[t.accountType]?.label ?? t.accountType}</Chip>
+                  <Chip tone={ACCT[t.accountType]?.tone ?? 'default'} style={{ fontSize: 9, padding: '0 6px' }}>{ACCT[t.accountType]?.label ?? t.accountType}</Chip>
                 </div>
               </div>
-              <Money value={t.amount} style={{ fontSize: 14, flexShrink: 0 }}/>
-              <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                <Button variant="icon" size="sm" onClick={() => openEdit(t)} title="Editar">
+              <Money value={t.amount} style={{ fontSize: 14, flexShrink: 0, fontWeight: 700 }}/>
+              <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                <Button variant="icon" size="sm" onClick={() => openEdit(t)} title="Editar" style={{ width: 32, height: 32 }}>
                   <Ico d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" size={14}/>
                 </Button>
-                <Button variant="danger" size="sm" onClick={() => handleDelete(t.id)} title="Eliminar">
+                <Button variant="danger" size="sm" onClick={() => handleDelete(t.id)} title="Eliminar" style={{ width: 32, height: 32 }}>
                   <Ico d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" size={14}/>
                 </Button>
               </div>
@@ -178,7 +188,11 @@ export default function GastosPage() {
               </Button>
             </div>
             <form onSubmit={handleSave} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                gap: 14
+              }}>
                 <div>
                   <span style={lbl}>Fecha</span>
                   <input type="date" required value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} style={sel}/>
@@ -193,11 +207,19 @@ export default function GastosPage() {
               </div>
               <Input label="Nombre del gasto" type="text" required value={form.name}
                 onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ej: Mercado, Arriendo…"/>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                gap: 14
+              }}>
                 <div><span style={lbl}>Categoría</span><select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} style={sel}>{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select></div>
                 <div><span style={lbl}>Cuenta</span><select value={form.accountType} onChange={e => setForm({ ...form, accountType: e.target.value })} style={sel}>{ACCOUNT_TYPES.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}</select></div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                gap: 14
+              }}>
                 <div><span style={lbl}>Tipo</span><select value={form.expenseType} onChange={e => setForm({ ...form, expenseType: e.target.value })} style={sel}>{EXPENSE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}</select></div>
                 <div><span style={lbl}>Método de pago</span><select value={form.paymentMethod} onChange={e => setForm({ ...form, paymentMethod: e.target.value })} style={sel}>{PAYMENT_METHODS.map(m => <option key={m}>{m}</option>)}</select></div>
               </div>

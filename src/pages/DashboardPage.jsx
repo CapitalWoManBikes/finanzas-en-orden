@@ -46,10 +46,42 @@ export default function DashboardPage() {
   const hasActivity = transactions.length > 0
 
   const alerts = []
-  if (!income) alerts.push({ tone: 'warn', msg: 'No tienes ingreso registrado para este mes.', link: '/ingresos', linkLabel: 'Registrar' })
-  if (hasActivity && spendRate > 90) alerts.push({ tone: 'neg', msg: `Llevas el ${spendRate}% del ingreso gastado este mes.` })
-  if (hasActivity && savingsRate < 10) alerts.push({ tone: 'warn', msg: 'Tu tasa de ahorro es menor al 10%. Revisa tus gastos.' })
-  if (hasActivity && savingsRate >= 15) alerts.push({ tone: 'pos', msg: `¡Excelente! Llevas un ${savingsRate}% de ahorro este mes.` })
+  if (!income) {
+    alerts.push({
+      tone: 'warn',
+      msg: 'No tienes ingreso registrado para este mes.',
+      link: '/ingresos',
+      linkLabel: 'Registrar ahora'
+    })
+  } else {
+    if (hasActivity && spendRate > 90) {
+      alerts.push({
+        tone: 'neg',
+        msg: `¡Atención! Has gastado el ${spendRate}% de tu presupuesto mensual.`,
+        linkLabel: 'Ver Gastos',
+        link: '/gastos'
+      })
+    } else if (hasActivity && spendRate > 70) {
+      alerts.push({
+        tone: 'warn',
+        msg: `Cuidado: Ya has consumido el ${spendRate}% de tu ingreso.`
+      })
+    }
+
+    if (hasActivity && savingsRate < 10) {
+      alerts.push({
+        tone: 'warn',
+        msg: 'Tu ahorro es menor al 10%. Considera reducir gastos diarios.',
+        linkLabel: 'Optimizar',
+        link: '/gastos-base'
+      })
+    } else if (hasActivity && savingsRate >= 15) {
+      alerts.push({
+        tone: 'pos',
+        msg: `¡Vas genial! Has ahorrado el ${savingsRate}% de tus ingresos.`
+      })
+    }
+  }
 
   const byCategory = {}
   transactions.forEach(t => { byCategory[t.category] = (byCategory[t.category] || 0) + t.amount })
@@ -63,9 +95,10 @@ export default function DashboardPage() {
 
   if (loading) return (
     <AppLayout>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 240 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '80vh', gap: 16, color: 'var(--fo-fg-dim)' }}>
         <Spinner size="lg"/>
-      </div>
+        <p style={{ fontSize: 13, fontWeight: 500, opacity: 0.8 }}>Sincronizando tus finanzas...</p>
+      </div
     </AppLayout>
   )
 
