@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import AppLayout from '../components/layout/AppLayout'
 import { updateUser } from '../lib/firestore'
-import { Card, Button, SectionHeader } from '../components/fo'
+import { Card, Button, SectionHeader, Chip } from '../components/fo'
 import Spinner from '../components/ui/Spinner'
-import { getDaysUntilPayment, formatNextPaymentDate } from '../utils/dailyBudget'
+import { getNextPaymentDate, getDaysUntilPayment, formatNextPaymentDate } from '../utils/dailyBudget'
 
 const sel = { background: 'var(--fo-surface-2)', border: '1px solid var(--fo-line)', borderRadius: 'var(--fo-r-md)', padding: '10px 14px', fontSize: 14, color: 'var(--fo-fg)', fontFamily: 'inherit', outline: 'none', width: '100%' }
 const lbl = { display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 600, color: 'var(--fo-fg-muted)' }

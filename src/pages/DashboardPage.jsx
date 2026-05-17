@@ -4,7 +4,6 @@ import { useFinance } from '../hooks/useFinance'
 import { useAuth } from '../context/AuthContext'
 import AppLayout from '../components/layout/AppLayout'
 import { formatCOP, MONTHS, currentMonth, currentYear } from '../utils/format'
-import { calculateMonthlySummary } from '../utils/financeSummary'
 import { Card, KPI, Chip, Button, ProgressBar, SectionHeader, Money, Ico, ICONS } from '../components/fo'
 import DailyWidget from '../components/dashboard/DailyWidget'
 import {
@@ -36,87 +35,36 @@ export default function DashboardPage() {
   const navigate = useNavigate()
   const [month] = useState(currentMonth())
   const [year] = useState(currentYear())
-  const { income, incomeEntries, budget, defaultExpenses, transactions, loading } = useFinance(month, year)
+  const { income, budget, transactions, loading } = useFinance(month, year)
 
-  const summary = calculateMonthlySummary({ income, incomeEntries, budget, transactions, defaultExpenses })
-  const incomeVal = summary.income
-  const totalSpent = summary.totalSpent
-  const totalSaved = summary.totalSaved
-  const available = summary.availableMoney
-  const savingsRate = summary.savingsRate
-  const spendRate = summary.spendingRate
+  const incomeVal = income?.income ?? 0
+  const totalSpent = transactions.reduce((s, t) => s + (t.amount || 0), 0)
+  const totalSaved = transactions.filter(t => t.accountType === 'savings').reduce((s, t) => s + t.amount, 0)
+  const available = incomeVal - totalSpent
+  const savingsRate = incomeVal > 0 ? Math.round((totalSaved / incomeVal) * 100) : 0
+  const spendRate = incomeVal > 0 ? Math.round((totalSpent / incomeVal) * 100) : 0
   const hasActivity = transactions.length > 0
-  const hasConfiguredPlan = summary.fixedExpensesBudget > 0 || summary.savingsBudget > 0
 
   const alerts = []
-  if (incomeVal <= 0) {
-    alerts.push({
-      tone: 'warn',
-      msg: 'No tienes ingreso registrado para este mes.',
-      link: '/ingresos',
-      linkLabel: 'Registrar ahora'
-    })
-  } else {
-    if (summary.isOverBudget) {
-      alerts.push({
-        tone: 'neg',
-        msg: `Tu saldo está en negativo por ${formatCOP(summary.overBudgetAmount)}.`,
-        linkLabel: 'Revisar gastos',
-        link: '/gastos'
-      })
-    } else if (hasActivity && spendRate > 90) {
-      alerts.push({
-        tone: 'neg',
-        msg: `¡Atención! Has gastado el ${spendRate}% de tu presupuesto mensual.`,
-        linkLabel: 'Ver Gastos',
-        link: '/gastos'
-      })
-    } else if (hasActivity && spendRate > 70) {
-      alerts.push({
-        tone: 'warn',
-        msg: `Cuidado: Ya has consumido el ${spendRate}% de tu ingreso.`
-      })
-    }
-
-    if (!hasConfiguredPlan) {
-      alerts.push({
-        tone: 'warn',
-        msg: 'AÃºn no tienes gastos fijos o metas configuradas. El presupuesto se calcula solo con tu ingreso.',
-        linkLabel: 'Configurar',
-        link: '/gastos-base'
-      })
-    }
-
-    if (hasActivity && savingsRate < 10) {
-      alerts.push({
-        tone: 'warn',
-        msg: 'Tu ahorro es menor al 10%. Considera reducir gastos diarios.',
-        linkLabel: 'Optimizar',
-        link: '/gastos-base'
-      })
-    } else if (hasActivity && savingsRate >= 15) {
-      alerts.push({
-        tone: 'pos',
-        msg: `¡Vas genial! Has ahorrado el ${savingsRate}% de tus ingresos.`
-      })
-    }
-  }
+  if (!income) alerts.push({ tone: 'warn', msg: 'No tienes ingreso registrado para este mes.', link: '/ingresos', linkLabel: 'Registrar' })
+  if (hasActivity && spendRate > 90) alerts.push({ tone: 'neg', msg: `Llevas el ${spendRate}% del ingreso gastado este mes.` })
+  if (hasActivity && savingsRate < 10) alerts.push({ tone: 'warn', msg: 'Tu tasa de ahorro es menor al 10%. Revisa tus gastos.' })
+  if (hasActivity && savingsRate >= 15) alerts.push({ tone: 'pos', msg: `¡Excelente! Llevas un ${savingsRate}% de ahorro este mes.` })
 
   const byCategory = {}
   transactions.forEach(t => { byCategory[t.category] = (byCategory[t.category] || 0) + t.amount })
   const pieData = Object.entries(byCategory).map(([name, value]) => ({ name, value }))
 
   const barData = [
-    { name: 'G. Fijos',     presupuesto: summary.fixedExpensesBudget, gastado: summary.fixedExpensesSpent },
-    { name: 'Ahorro',       presupuesto: summary.savingsBudget,       gastado: summary.totalSaved },
-    { name: 'Gasto diario', presupuesto: summary.dailySpendingBudget, gastado: summary.dailySpent },
+    { name: 'G. Fijos',     presupuesto: budget?.fixedExpensesBudget ?? 0, gastado: transactions.filter(t => t.accountType === 'fixedExpenses').reduce((s, t) => s + t.amount, 0) },
+    { name: 'Ahorro',       presupuesto: budget?.savingsBudget ?? 0,        gastado: transactions.filter(t => t.accountType === 'savings').reduce((s, t) => s + t.amount, 0) },
+    { name: 'Gasto diario', presupuesto: budget?.dailySpendingBudget ?? 0,  gastado: transactions.filter(t => t.accountType === 'dailySpending').reduce((s, t) => s + t.amount, 0) },
   ]
 
   if (loading) return (
     <AppLayout>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '80vh', gap: 16, color: 'var(--fo-fg-dim)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 240 }}>
         <Spinner size="lg"/>
-        <p style={{ fontSize: 13, fontWeight: 500, opacity: 0.8 }}>Sincronizando tus finanzas...</p>
       </div>
     </AppLayout>
   )
@@ -155,16 +103,11 @@ export default function DashboardPage() {
         ))}
 
         {/* Daily Widget */}
-        <div style={{ marginBottom: 20 }}>
-          <DailyWidget
-            income={income}
-            incomeEntries={incomeEntries}
-            budget={budget}
-            defaultExpenses={defaultExpenses}
-            transactions={transactions}
-            paymentConfig={userData?.paymentConfig}
-          />
-        </div>
+        {income && budget?.dailySpendingBudget > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <DailyWidget income={income} budget={budget} transactions={transactions} paymentConfig={userData?.paymentConfig}/>
+          </div>
+        )}
 
         {/* KPIs */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 16 }} className="kpi-grid">

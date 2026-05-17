@@ -141,7 +141,7 @@ export function Input({
   id,
   ...rest
 }) {
-  const generatedId = React.useId();
+  const generatedId = React.useId ? React.useId() : Math.random().toString(36).slice(2);
   const inputId = id || generatedId;
 
   return (

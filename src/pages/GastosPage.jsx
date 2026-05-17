@@ -1,18 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import AppLayout from '../components/layout/AppLayout'
-import {
-  getMonthlyBudget,
-  getMonthlyIncome,
-  getIncomeEntries,
-  getDefaultExpenses,
-  getTransactions,
-  addTransaction,
-  updateTransaction,
-  deleteTransaction,
-} from '../lib/firestore'
+import { getTransactions, addTransaction, updateTransaction, deleteTransaction } from '../lib/firestore'
 import { formatCOP, MONTHS, CATEGORIES, ACCOUNT_TYPES, EXPENSE_TYPES, PAYMENT_METHODS, currentMonth, currentYear } from '../utils/format'
-import { calculateMonthlySummary } from '../utils/financeSummary'
 import { Card, Button, Input, Chip, SectionHeader, Money, Ico, ICONS } from '../components/fo'
 import Spinner from '../components/ui/Spinner'
 
@@ -40,10 +30,6 @@ export default function GastosPage() {
   const { user } = useAuth()
   const [month, setMonth] = useState(currentMonth())
   const [year, setYear]   = useState(currentYear())
-  const [income, setIncome] = useState(null)
-  const [incomeEntries, setIncomeEntries] = useState([])
-  const [budget, setBudget] = useState(null)
-  const [defaultExpenses, setDefaultExpenses] = useState([])
   const [txs, setTxs]     = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving]   = useState(false)
@@ -52,29 +38,8 @@ export default function GastosPage() {
   const [form, setForm]         = useState(EMPTY)
   const [filter, setFilter]     = useState({ category: '', accountType: '', search: '' })
 
-  const load = useCallback(async () => {
-    if (!user) return
-    setLoading(true);
-    try {
-      const [incomeData, entries, budgetData, defaults, txs] = await Promise.all([
-        getMonthlyIncome(user.uid, month, year),
-        getIncomeEntries(user.uid, month, year),
-        getMonthlyBudget(user.uid, month, year),
-        getDefaultExpenses(user.uid),
-        getTransactions(user.uid, month, year),
-      ]);
-      setIncome(incomeData);
-      setIncomeEntries(entries);
-      setBudget(budgetData);
-      setDefaultExpenses(defaults);
-      setTxs(txs);
-    } catch (e) {
-      console.error("Error loading transactions", e);
-    } finally {
-      setLoading(false);
-    }
-  }, [user, month, year])
-  useEffect(() => { load() }, [load])
+  const load = async () => { setLoading(true); setTxs(await getTransactions(user.uid, month, year)); setLoading(false) }
+  useEffect(() => { load() }, [month, year])
 
   const openNew  = () => { setEditing(null); setForm(EMPTY); setShowForm(true) }
   const openEdit = (tx) => { setEditing(tx.id); setForm({ ...tx }); setShowForm(true) }
@@ -101,15 +66,6 @@ export default function GastosPage() {
     (!filter.search || t.name.toLowerCase().includes(filter.search.toLowerCase()))
   )
   const total = filtered.reduce((s, t) => s + t.amount, 0)
-  const summary = calculateMonthlySummary({ income, incomeEntries, budget, defaultExpenses, transactions: txs })
-  const balanceTone = summary.availableMoney < 0 ? 'var(--fo-neg)' : summary.spendingRate > 85 ? 'var(--fo-warn)' : 'var(--fo-pos)'
-  const balanceMsg = !income
-    ? 'Registra un ingreso para activar el saldo del mes.'
-    : summary.availableMoney < 0
-      ? `Te pasaste por ${formatCOP(summary.overBudgetAmount)}.`
-      : summary.spendingRate > 85
-        ? 'Estás cerca de gastar todo el ingreso.'
-        : 'Saldo al día.'
 
   return (
     <AppLayout>
@@ -118,42 +74,15 @@ export default function GastosPage() {
           action={<Button onClick={openNew} icon={<Ico d={ICONS.plus} size={14}/>}>Nuevo gasto</Button>}
         />
 
-        {/* Saldo tipo cuenta */}
-        <Card style={{ marginBottom: 16, borderColor: summary.availableMoney < 0 ? 'var(--fo-neg)' : undefined }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            <div>
-              <p style={{ margin: 0, fontSize: 11, color: 'var(--fo-fg-dim)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                Saldo disponible
-              </p>
-              <p className="fo-num" style={{ margin: '6px 0 0', fontSize: 34, lineHeight: 1, color: balanceTone }}>
-                {formatCOP(summary.availableMoney)}
-              </p>
-              <p style={{ margin: '8px 0 0', fontSize: 12, color: balanceTone, fontWeight: 600 }}>
-                {balanceMsg}
-              </p>
-            </div>
-            <div style={{ minWidth: 210, display: 'grid', gap: 8 }}>
-              <BalanceLine label="Ingreso" value={summary.income} tone="var(--fo-pos)" sign="+" />
-              <BalanceLine label="Gastado / movido" value={summary.totalSpent} tone="var(--fo-neg)" sign="-" />
-              <div style={{ height: 1, background: 'var(--fo-line)' }} />
-              <BalanceLine label={`${summary.spendingRate}% usado`} value={summary.availableMoney} tone={balanceTone} />
-            </div>
-          </div>
-        </Card>
-
         {/* Resumen por cuenta */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 16 }}>
           {ACCOUNT_TYPES.map(({ value, label }) => {
             const amt = filtered.filter(t => t.accountType === value).reduce((s, t) => s + t.amount, 0)
             const a = ACCT[value]
-            const accountBalance = summary.accountBalances[value] ?? 0
             return (
               <Card key={value}>
                 <Chip tone={a.tone} style={{ marginBottom: 8 }}>{label}</Chip>
                 <Money value={amt} style={{ fontSize: 18, display: 'block', marginTop: 6 }}/>
-                <p style={{ margin: '6px 0 0', fontSize: 11, color: accountBalance < 0 ? 'var(--fo-neg)' : 'var(--fo-fg-dim)' }}>
-                  {accountBalance < 0 ? 'Exceso' : 'Queda'}: {formatCOP(Math.abs(accountBalance))}
-                </p>
               </Card>
             )
           })}
@@ -213,20 +142,20 @@ export default function GastosPage() {
             }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ margin: 0, fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 10, color: 'var(--fo-fg-dim)' }}>{t.date}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                  <span style={{ fontSize: 11, color: 'var(--fo-fg-dim)' }}>{t.date}</span>
                   <span style={{ color: 'var(--fo-line)' }}>·</span>
-                  <span style={{ fontSize: 10, color: 'var(--fo-fg-dim)' }}>{t.category}</span>
+                  <span style={{ fontSize: 11, color: 'var(--fo-fg-dim)' }}>{t.category}</span>
                   <span style={{ color: 'var(--fo-line)' }}>·</span>
-                  <Chip tone={ACCT[t.accountType]?.tone ?? 'default'} style={{ fontSize: 9, padding: '0 6px' }}>{ACCT[t.accountType]?.label ?? t.accountType}</Chip>
+                  <Chip tone={ACCT[t.accountType]?.tone ?? 'default'}>{ACCT[t.accountType]?.label ?? t.accountType}</Chip>
                 </div>
               </div>
-              <Money value={t.amount} style={{ fontSize: 14, flexShrink: 0, fontWeight: 700 }}/>
-              <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                <Button variant="icon" size="sm" onClick={() => openEdit(t)} title="Editar" style={{ width: 32, height: 32 }}>
+              <Money value={t.amount} style={{ fontSize: 14, flexShrink: 0 }}/>
+              <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                <Button variant="icon" size="sm" onClick={() => openEdit(t)} title="Editar">
                   <Ico d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" size={14}/>
                 </Button>
-                <Button variant="danger" size="sm" onClick={() => handleDelete(t.id)} title="Eliminar" style={{ width: 32, height: 32 }}>
+                <Button variant="danger" size="sm" onClick={() => handleDelete(t.id)} title="Eliminar">
                   <Ico d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" size={14}/>
                 </Button>
               </div>
@@ -249,11 +178,7 @@ export default function GastosPage() {
               </Button>
             </div>
             <form onSubmit={handleSave} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                gap: 14
-              }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                 <div>
                   <span style={lbl}>Fecha</span>
                   <input type="date" required value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} style={sel}/>
@@ -268,19 +193,11 @@ export default function GastosPage() {
               </div>
               <Input label="Nombre del gasto" type="text" required value={form.name}
                 onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ej: Mercado, Arriendo…"/>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                gap: 14
-              }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                 <div><span style={lbl}>Categoría</span><select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} style={sel}>{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select></div>
                 <div><span style={lbl}>Cuenta</span><select value={form.accountType} onChange={e => setForm({ ...form, accountType: e.target.value })} style={sel}>{ACCOUNT_TYPES.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}</select></div>
               </div>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                gap: 14
-              }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                 <div><span style={lbl}>Tipo</span><select value={form.expenseType} onChange={e => setForm({ ...form, expenseType: e.target.value })} style={sel}>{EXPENSE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}</select></div>
                 <div><span style={lbl}>Método de pago</span><select value={form.paymentMethod} onChange={e => setForm({ ...form, paymentMethod: e.target.value })} style={sel}>{PAYMENT_METHODS.map(m => <option key={m}>{m}</option>)}</select></div>
               </div>
@@ -294,16 +211,5 @@ export default function GastosPage() {
         </div>
       )}
     </AppLayout>
-  )
-}
-
-function BalanceLine({ label, value, tone, sign }) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center' }}>
-      <span style={{ fontSize: 12, color: 'var(--fo-fg-dim)' }}>{label}</span>
-      <span className="fo-num" style={{ fontSize: 13, fontWeight: 700, color: tone }}>
-        {sign ? `${sign} ` : ''}{formatCOP(value)}
-      </span>
-    </div>
   )
 }

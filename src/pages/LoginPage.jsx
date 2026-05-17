@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { Card, Button, Input, Logo, BrandLogo } from '../components/fo'
+import { Card, Button, Input, Logo } from '../components/fo'
 import Spinner from '../components/ui/Spinner'
 
 const GoogleIcon = () => (
@@ -65,8 +65,9 @@ export default function LoginPage() {
           background: 'radial-gradient(circle, oklch(0.55 0.22 260 / 0.3), transparent 65%)',
           filter: 'blur(40px)',
         }}/>
-        <div style={{ position: 'relative' }}>
-          <BrandLogo height={40}/>
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Logo size={34}/>
+          <span style={{ fontWeight: 700, fontSize: 15 }}>Finanzas en Orden</span>
         </div>
         <div style={{ position: 'relative' }}>
           <p style={{ fontSize: 11, color: 'var(--fo-fg-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600, marginBottom: 12 }}>Tu dinero, bajo control</p>
