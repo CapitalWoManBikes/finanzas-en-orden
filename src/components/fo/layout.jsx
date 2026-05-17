@@ -42,20 +42,38 @@ export { Ico };
    ============================================================ */
 export function Logo({ size = 30 }) {
   return (
-    <div style={{
-      width: size, height: size,
-      borderRadius: size / 3.4,
-      background: 'var(--fo-accent-grad)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      boxShadow: '0 8px 22px -8px var(--fo-accent)',
-      flexShrink: 0,
-    }}>
-      <svg viewBox="0 0 24 24" width="60%" height="60%" fill="none">
-        <path d="M7 18V6h7a3 3 0 0 1 0 6H7m0 0h6.5L18 18"
-              stroke="#fff" strokeWidth="2.4"
-              strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    </div>
+    <img
+      src="/brand-isotipo.png"
+      alt="Finanzas en Orden"
+      width={size}
+      height={size}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 3.4,
+        objectFit: 'cover',
+        display: 'block',
+        flexShrink: 0,
+        boxShadow: '0 8px 22px -10px rgba(0, 120, 255, 0.45)',
+      }}
+    />
+  );
+}
+
+export function BrandLogo({ height = 34 }) {
+  return (
+    <img
+      src="/brand-logo.png"
+      alt="Finanzas en Orden"
+      height={height}
+      style={{
+        height,
+        width: 'auto',
+        maxWidth: '100%',
+        display: 'block',
+        objectFit: 'contain',
+      }}
+    />
   );
 }
 

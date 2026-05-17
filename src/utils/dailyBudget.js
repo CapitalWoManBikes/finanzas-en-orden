@@ -42,9 +42,9 @@ export function getDaysLeftInMonth() {
   return Math.max(Math.round((lastDay - today) / 86400000) + 1, 1)
 }
 
-export function calcDailyData({ income, budget, transactions = [], paymentConfig, defaultExpenses }) {
+export function calcDailyData({ income, incomeEntries, budget, transactions = [], paymentConfig, defaultExpenses }) {
   const todayStr = new Date().toISOString().split('T')[0]
-  const summary = calculateMonthlySummary({ income, budget, transactions, defaultExpenses })
+  const summary = calculateMonthlySummary({ income, incomeEntries, budget, transactions, defaultExpenses })
   const incomeVal = summary.income
   const dailyBudget = summary.dailySpendingBudget
 
@@ -82,6 +82,9 @@ export function calcDailyData({ income, budget, transactions = [], paymentConfig
     monthlyDailySpent,
     dailyBudget,
     incomeVal,
+    expectedIncome: summary.expectedIncome,
+    projectedIncome: summary.projectedIncome,
+    totalSpent: summary.totalSpent,
     fixedSpent,
     savingsSpent,
     fixedExpensesRegistered: summary.fixedExpensesRegistered,

@@ -8,9 +8,9 @@ const STATUS = {
   red:    { color: 'var(--fo-neg)', bg: 'var(--fo-neg-soft)', border: 'oklch(0.65 0.22 25 / 0.35)', msg: 'Superaste el presupuesto' },
 }
 
-export default function DailyWidget({ income, budget, defaultExpenses, transactions, paymentConfig }) {
+export default function DailyWidget({ income, incomeEntries, budget, defaultExpenses, transactions, paymentConfig }) {
   const navigate = useNavigate()
-  const d = calcDailyData({ income, budget, defaultExpenses, transactions, paymentConfig })
+  const d = calcDailyData({ income, incomeEntries, budget, defaultExpenses, transactions, paymentConfig })
   const s = STATUS[d.status]
   const todayPct = d.dailyAllowance > 0 ? Math.min((d.todaySpent / d.dailyAllowance) * 100, 100) : 0
   const canSpendToday = Math.max(d.dailyAllowance - d.todaySpent, 0)
@@ -86,8 +86,8 @@ export default function DailyWidget({ income, budget, defaultExpenses, transacti
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', borderBottom: '1px solid var(--fo-line-soft)' }} className="daily-kpis">
         <style>{`@media(max-width:640px){.daily-kpis{grid-template-columns:1fr!important}.daily-kpis>div{border-left:none!important;border-top:1px solid var(--fo-line-soft)}}`}</style>
-        <KPICell label="Presupuesto disponible" value={formatCOP(d.plannedAvailableMoney)} sub="mes actual" />
-        <KPICell label="Has gastado" value={formatCOP(d.monthlyDailySpent)} sub="gasto diario del mes" border />
+        <KPICell label="Has recibido" value={formatCOP(d.incomeVal)} sub="ingresos confirmados" />
+        <KPICell label="Has gastado" value={formatCOP(d.totalSpent)} sub="gastos registrados" border />
         <KPICell label="Te quedan" value={formatCOP(d.remaining)} sub={`${d.monthDaysLeft} dias del mes`} border />
       </div>
 
@@ -115,7 +115,8 @@ export default function DailyWidget({ income, budget, defaultExpenses, transacti
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <FlowRow label="Tu presupuesto disponible es de" value={d.plannedAvailableMoney} color="oklch(0.78 0.17 85)" sign="" />
-          <FlowRow label="Has gastado" value={d.monthlyDailySpent} color="var(--fo-neg)" sign="-" />
+          <FlowRow label="Has gastado" value={d.totalSpent} color="var(--fo-neg)" sign="-" />
+          {d.expectedIncome > 0 && <FlowRow label="Proyeccion con ingresos esperados" value={d.projectedIncome} color="var(--fo-accent-fg)" sign="" />}
           <div style={{ borderTop: '1px solid var(--fo-line-soft)', paddingTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--fo-fg)' }}>Te quedan para este mes</span>
             <span style={{ fontSize: 14, fontWeight: 800, color: d.availableMoney < 0 ? 'var(--fo-neg)' : 'var(--fo-pos)', fontFamily: 'var(--fo-font-num)' }}>

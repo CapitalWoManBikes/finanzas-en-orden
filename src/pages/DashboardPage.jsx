@@ -36,9 +36,9 @@ export default function DashboardPage() {
   const navigate = useNavigate()
   const [month] = useState(currentMonth())
   const [year] = useState(currentYear())
-  const { income, budget, defaultExpenses, transactions, loading } = useFinance(month, year)
+  const { income, incomeEntries, budget, defaultExpenses, transactions, loading } = useFinance(month, year)
 
-  const summary = calculateMonthlySummary({ income, budget, transactions, defaultExpenses })
+  const summary = calculateMonthlySummary({ income, incomeEntries, budget, transactions, defaultExpenses })
   const incomeVal = summary.income
   const totalSpent = summary.totalSpent
   const totalSaved = summary.totalSaved
@@ -49,7 +49,7 @@ export default function DashboardPage() {
   const hasConfiguredPlan = summary.fixedExpensesBudget > 0 || summary.savingsBudget > 0
 
   const alerts = []
-  if (!income) {
+  if (incomeVal <= 0) {
     alerts.push({
       tone: 'warn',
       msg: 'No tienes ingreso registrado para este mes.',
@@ -158,6 +158,7 @@ export default function DashboardPage() {
         <div style={{ marginBottom: 20 }}>
           <DailyWidget
             income={income}
+            incomeEntries={incomeEntries}
             budget={budget}
             defaultExpenses={defaultExpenses}
             transactions={transactions}

@@ -87,6 +87,50 @@ export async function getAllMonthlyIncomes(uid) {
     .sort((a, b) => b.year !== a.year ? b.year - a.year : b.month - a.month)
 }
 
+// ── Income Entries ──────────────────────────────────────────────
+export async function getIncomeEntries(uid, month, year) {
+  const snap = await getDocs(
+    query(
+      collection(db, 'users', uid, 'incomeEntries'),
+      where('month', '==', month),
+      where('year', '==', year)
+    )
+  )
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => (b.date > a.date ? 1 : -1))
+}
+
+export async function addIncomeEntry(uid, data) {
+  const ref = await addDoc(collection(db, 'users', uid, 'incomeEntries'), {
+    ...data,
+    status: data.status ?? 'confirmed',
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  })
+  if (data.month && data.year) await syncMonthlySummary(uid, data.month, data.year)
+  return ref
+}
+
+export async function updateIncomeEntry(uid, entryId, data) {
+  const ref = doc(db, 'users', uid, 'incomeEntries', entryId)
+  const before = await getDoc(ref)
+  await updateDoc(ref, { ...data, updatedAt: serverTimestamp() })
+  const oldData = before.exists() ? before.data() : null
+  const monthsToSync = new Map()
+  if (oldData?.month && oldData?.year) monthsToSync.set(`${oldData.year}-${oldData.month}`, { month: oldData.month, year: oldData.year })
+  if (data.month && data.year) monthsToSync.set(`${data.year}-${data.month}`, { month: data.month, year: data.year })
+  await Promise.all([...monthsToSync.values()].map(({ month, year }) => syncMonthlySummary(uid, month, year)))
+}
+
+export async function deleteIncomeEntry(uid, entryId) {
+  const ref = doc(db, 'users', uid, 'incomeEntries', entryId)
+  const before = await getDoc(ref)
+  await deleteDoc(ref)
+  const data = before.exists() ? before.data() : null
+  if (data?.month && data?.year) await syncMonthlySummary(uid, data.month, data.year)
+}
+
 // ── Monthly Budget ──────────────────────────────────────
 export async function getMonthlyBudget(uid, month, year) {
   const snap = await getDoc(doc(db, 'users', uid, 'monthlyBudgets', monthId(month, year)))
@@ -162,14 +206,15 @@ export async function setMonthlySummary(uid, month, year, data) {
 }
 
 export async function syncMonthlySummary(uid, month, year) {
-  const [income, budget, transactions] = await Promise.all([
+  const [income, budget, incomeEntries, transactions] = await Promise.all([
     getMonthlyIncome(uid, month, year),
     getMonthlyBudget(uid, month, year),
+    getIncomeEntries(uid, month, year),
     getTransactions(uid, month, year),
   ])
   const defaultExpenses = await getDefaultExpenses(uid)
 
-  const summary = calculateMonthlySummary({ income, budget, transactions, defaultExpenses })
+  const summary = calculateMonthlySummary({ income, incomeEntries, budget, transactions, defaultExpenses })
   await setMonthlySummary(uid, month, year, summary)
   return summary
 }

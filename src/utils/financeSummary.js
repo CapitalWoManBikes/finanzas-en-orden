@@ -3,8 +3,12 @@ const amount = (value) => Math.max(Number(value) || 0, 0)
 const sum = (items, predicate) =>
   (items ?? []).filter(predicate).reduce((total, item) => total + amount(item.amount), 0)
 
-export function calculateMonthlySummary({ income, budget, transactions, defaultExpenses }) {
-  const incomeVal = amount(income?.income)
+export function calculateMonthlySummary({ income, incomeEntries, budget, transactions, defaultExpenses }) {
+  const entries = incomeEntries ?? []
+  const confirmedIncome = sum(entries, (entry) => (entry.status ?? 'confirmed') === 'confirmed')
+  const expectedIncome = sum(entries, (entry) => entry.status === 'expected')
+  const incomeVal = entries.length > 0 ? confirmedIncome : amount(income?.income)
+  const projectedIncome = incomeVal + expectedIncome
   const txs = transactions ?? []
   const defaults = defaultExpenses ?? []
 
@@ -31,6 +35,9 @@ export function calculateMonthlySummary({ income, budget, transactions, defaultE
 
   return {
     income: incomeVal,
+    expectedIncome,
+    projectedIncome,
+    hasIncomeEntries: entries.length > 0,
     totalSpent,
     totalSaved,
     availableMoney,
