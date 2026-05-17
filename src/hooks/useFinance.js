@@ -2,9 +2,11 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
 import {
   getMonthlyIncome,
+  getIncomeEntries,
   getMonthlyBudget,
+  getDefaultExpenses,
   getTransactions,
-  setMonthlySummary,
+  syncMonthlySummary,
 } from '../lib/firestore'
 import { currentMonth, currentYear } from '../utils/format'
 
@@ -12,6 +14,8 @@ export function useFinance(month = currentMonth(), year = currentYear()) {
   const { user } = useAuth()
   const [income, setIncome] = useState(null)
   const [budget, setBudget] = useState(null)
+  const [incomeEntries, setIncomeEntries] = useState([])
+  const [defaultExpenses, setDefaultExpenses] = useState([])
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -19,28 +23,20 @@ export function useFinance(month = currentMonth(), year = currentYear()) {
     if (!user) return
     setLoading(true)
     try {
-      const [inc, bud, txs] = await Promise.all([
+      const [inc, entries, bud, defaults, txs] = await Promise.all([
         getMonthlyIncome(user.uid, month, year),
+        getIncomeEntries(user.uid, month, year),
         getMonthlyBudget(user.uid, month, year),
+        getDefaultExpenses(user.uid),
         getTransactions(user.uid, month, year),
       ])
       setIncome(inc)
+      setIncomeEntries(entries)
       setBudget(bud)
+      setDefaultExpenses(defaults)
       setTransactions(txs)
 
-      if (inc) {
-        const totalSpent = txs.reduce((s, t) => s + (t.amount || 0), 0)
-        const totalSaved = txs.filter((t) => t.accountType === 'savings').reduce((s, t) => s + t.amount, 0)
-        await setMonthlySummary(user.uid, month, year, {
-          income: inc.income,
-          totalSpent,
-          totalSaved,
-          availableMoney: inc.income - totalSpent,
-          savingsRate: inc.income > 0 ? Math.round((totalSaved / inc.income) * 100) : 0,
-          fixedExpensesSpent: txs.filter((t) => t.accountType === 'fixedExpenses').reduce((s, t) => s + t.amount, 0),
-          dailySpent: txs.filter((t) => t.accountType === 'dailySpending').reduce((s, t) => s + t.amount, 0),
-        })
-      }
+      if (inc || entries.length > 0) await syncMonthlySummary(user.uid, month, year)
     } catch (err) {
       console.error('useFinance error:', err)
     } finally {
@@ -50,5 +46,5 @@ export function useFinance(month = currentMonth(), year = currentYear()) {
 
   useEffect(() => { load() }, [load])
 
-  return { income, budget, transactions, loading, reload: load }
+  return { income, incomeEntries, budget, defaultExpenses, transactions, loading, reload: load }
 }

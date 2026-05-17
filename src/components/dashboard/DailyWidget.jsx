@@ -3,16 +3,50 @@ import { calcDailyData } from '../../utils/dailyBudget'
 import { formatCOP } from '../../utils/format'
 
 const STATUS = {
-  green:  { color: 'var(--fo-pos)',    bg: 'var(--fo-pos-soft)',    border: 'var(--fo-pos)',    dot: 'var(--fo-pos)',    msg: 'Vas dentro del presupuesto' },
-  yellow: { color: 'oklch(0.78 0.17 85)', bg: 'oklch(0.78 0.17 85 / 0.10)', border: 'oklch(0.78 0.17 85 / 0.35)', dot: 'oklch(0.78 0.17 85)', msg: 'Cerca del límite diario' },
-  red:    { color: 'var(--fo-neg)',    bg: 'var(--fo-neg-soft)',    border: 'oklch(0.65 0.22 25 / 0.35)', dot: 'var(--fo-neg)',    msg: 'Superaste el presupuesto' },
+  green:  { color: 'var(--fo-pos)', bg: 'var(--fo-pos-soft)', border: 'var(--fo-pos)', msg: 'Vas dentro del presupuesto' },
+  yellow: { color: 'oklch(0.78 0.17 85)', bg: 'oklch(0.78 0.17 85 / 0.10)', border: 'oklch(0.78 0.17 85 / 0.35)', msg: 'Cerca del limite diario' },
+  red:    { color: 'var(--fo-neg)', bg: 'var(--fo-neg-soft)', border: 'oklch(0.65 0.22 25 / 0.35)', msg: 'Superaste el presupuesto' },
 }
 
-export default function DailyWidget({ income, budget, transactions, paymentConfig }) {
+export default function DailyWidget({ income, incomeEntries, budget, defaultExpenses, transactions, paymentConfig }) {
   const navigate = useNavigate()
-  const d = calcDailyData({ income, budget, transactions, paymentConfig })
+  const d = calcDailyData({ income, incomeEntries, budget, defaultExpenses, transactions, paymentConfig })
   const s = STATUS[d.status]
   const todayPct = d.dailyAllowance > 0 ? Math.min((d.todaySpent / d.dailyAllowance) * 100, 100) : 0
+  const canSpendToday = Math.max(d.dailyAllowance - d.todaySpent, 0)
+
+  if (d.incomeVal <= 0) {
+    return (
+      <div style={{
+        background: 'var(--fo-surface-1)',
+        border: '1px solid var(--fo-warn)',
+        borderRadius: 'var(--fo-r-xl)',
+        padding: '22px 24px',
+      }}>
+        <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'var(--fo-warn)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+          Presupuesto pendiente
+        </p>
+        <h3 style={{ margin: '8px 0 6px', fontSize: 22, color: 'var(--fo-fg)' }}>Agrega tus ingresos</h3>
+        <p style={{ margin: 0, fontSize: 13, color: 'var(--fo-fg-dim)', lineHeight: 1.5 }}>
+          Necesito el ingreso del mes para calcular tu dinero disponible, presupuesto diario y alertas de gasto.
+        </p>
+        <button onClick={() => navigate('/ingresos')} style={{
+          marginTop: 16,
+          padding: '10px 14px',
+          borderRadius: 'var(--fo-r-md)',
+          background: 'var(--fo-accent-grad)',
+          color: '#fff',
+          border: 'none',
+          fontSize: 13,
+          fontWeight: 700,
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+        }}>
+          Registrar ingreso
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div style={{
@@ -21,45 +55,53 @@ export default function DailyWidget({ income, budget, transactions, paymentConfi
       borderRadius: 'var(--fo-r-xl)',
       overflow: 'hidden',
     }}>
-
-      {/* Header */}
       <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid var(--fo-line-soft)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
           <div>
-            <p style={{ margin: 0, fontSize: 11, fontWeight: 600, color: 'var(--fo-fg-dim)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-              Presupuesto de hoy
+            <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'var(--fo-fg-dim)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+              Puedes gastar hoy
             </p>
-            <p style={{ margin: '6px 0 0', fontSize: 32, fontWeight: 700, color: 'var(--fo-fg)', lineHeight: 1, fontFamily: 'var(--fo-font-num)' }}>
-              {formatCOP(d.dailyAllowance)}
+            <p style={{ margin: '6px 0 0', fontSize: 34, fontWeight: 800, color: 'var(--fo-fg)', lineHeight: 1, fontFamily: 'var(--fo-font-num)' }}>
+              {formatCOP(canSpendToday)}
+            </p>
+            <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--fo-fg-dim)' }}>
+              Hoy puedes gastar maximo {formatCOP(d.dailyAllowance)} sin pasarte.
             </p>
           </div>
           <span style={{
-            padding: '4px 10px', borderRadius: 999, fontSize: 11, fontWeight: 600,
-            background: s.bg, color: s.color, border: `1px solid ${s.border}`,
+            padding: '4px 10px',
+            borderRadius: 999,
+            fontSize: 11,
+            fontWeight: 700,
+            background: s.bg,
+            color: s.color,
+            border: `1px solid ${s.border}`,
             marginTop: 2,
+            whiteSpace: 'nowrap',
           }}>
             {s.msg}
           </span>
         </div>
       </div>
 
-      {/* KPIs 2 columnas */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: '1px solid var(--fo-line-soft)' }}>
-        <KPICell label="Gastado hoy" value={formatCOP(d.todaySpent)} sub={`${Math.round(todayPct)}% del día`} />
-        <KPICell label="Próximo pago" value={`${d.daysLeft} días`} sub={d.nextPaymentDate} border />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', borderBottom: '1px solid var(--fo-line-soft)' }} className="daily-kpis">
+        <style>{`@media(max-width:640px){.daily-kpis{grid-template-columns:1fr!important}.daily-kpis>div{border-left:none!important;border-top:1px solid var(--fo-line-soft)}}`}</style>
+        <KPICell label="Has recibido" value={formatCOP(d.incomeVal)} sub="ingresos confirmados" />
+        <KPICell label="Has gastado" value={formatCOP(d.totalSpent)} sub="gastos registrados" border />
+        <KPICell label="Te quedan" value={formatCOP(d.remaining)} sub={`${d.monthDaysLeft} dias del mes`} border />
       </div>
 
-      {/* Barra de progreso */}
       <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--fo-line-soft)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-          <span style={{ fontSize: 11, color: 'var(--fo-fg-dim)', fontWeight: 500 }}>Uso del presupuesto diario</span>
-          <span style={{ fontSize: 11, color: 'var(--fo-fg-muted)', fontWeight: 600, fontFamily: 'var(--fo-font-num)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, gap: 12 }}>
+          <span style={{ fontSize: 11, color: 'var(--fo-fg-dim)', fontWeight: 600 }}>Gasto de hoy vs recomendado</span>
+          <span style={{ fontSize: 11, color: 'var(--fo-fg-muted)', fontWeight: 700, fontFamily: 'var(--fo-font-num)' }}>
             {formatCOP(d.todaySpent)} / {formatCOP(d.dailyAllowance)}
           </span>
         </div>
-        <div style={{ height: 4, borderRadius: 999, background: 'var(--fo-surface-3)', overflow: 'hidden' }}>
+        <div style={{ height: 5, borderRadius: 999, background: 'var(--fo-surface-3)', overflow: 'hidden' }}>
           <div style={{
-            height: '100%', borderRadius: 999,
+            height: '100%',
+            borderRadius: 999,
             background: s.color,
             width: `${todayPct}%`,
             transition: 'width 600ms ease',
@@ -67,46 +109,48 @@ export default function DailyWidget({ income, budget, transactions, paymentConfi
         </div>
       </div>
 
-      {/* Flujo del mes */}
       <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--fo-line-soft)' }}>
-        <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 600, color: 'var(--fo-fg-dim)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-          Flujo del mes
+        <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 700, color: 'var(--fo-fg-dim)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+          Resumen rapido
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <FlowRow label="Ingreso" value={d.incomeVal} color="var(--fo-pos)" sign="+" />
-          <FlowRow label="Gastos fijos" value={d.fixedSpent} color="var(--fo-accent-fg)" sign="−" />
-          <FlowRow label="Ahorro" value={d.savingsSpent} color="oklch(0.66 0.20 290)" sign="−" />
-          <FlowRow label="Gasto diario" value={d.monthlyDailySpent} color="oklch(0.78 0.17 85)" sign="−" />
+          <FlowRow label="Tu presupuesto disponible es de" value={d.plannedAvailableMoney} color="oklch(0.78 0.17 85)" sign="" />
+          <FlowRow label="Has gastado" value={d.totalSpent} color="var(--fo-neg)" sign="-" />
+          {d.expectedIncome > 0 && <FlowRow label="Proyeccion con ingresos esperados" value={d.projectedIncome} color="var(--fo-accent-fg)" sign="" />}
           <div style={{ borderTop: '1px solid var(--fo-line-soft)', paddingTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--fo-fg)' }}>Disponible</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: d.availableMoney < 0 ? 'var(--fo-neg)' : 'var(--fo-pos)', fontFamily: 'var(--fo-font-num)' }}>
+            <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--fo-fg)' }}>Te quedan para este mes</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color: d.availableMoney < 0 ? 'var(--fo-neg)' : 'var(--fo-pos)', fontFamily: 'var(--fo-font-num)' }}>
               {formatCOP(d.availableMoney)}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Alerta / estado */}
-      {d.moneyWontLast && (
-        <div style={{ margin: '0 16px 0', padding: '10px 14px', background: 'var(--fo-neg-soft)', border: '1px solid oklch(0.65 0.22 25 / 0.3)', borderRadius: 'var(--fo-r-md)', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 14 }}>⚠</span>
-          <span style={{ fontSize: 12, color: 'var(--fo-neg)', fontWeight: 500 }}>A este ritmo el dinero no alcanza hasta el próximo pago.</span>
+      {d.moneyWontLast ? (
+        <div style={{ margin: '14px 16px 0', padding: '10px 14px', background: 'var(--fo-neg-soft)', border: '1px solid oklch(0.65 0.22 25 / 0.3)', borderRadius: 'var(--fo-r-md)' }}>
+          <span style={{ fontSize: 12, color: 'var(--fo-neg)', fontWeight: 600 }}>
+            Estas gastando mas de lo recomendado. Reduce el gasto diario para llegar al proximo pago.
+          </span>
         </div>
-      )}
-      {!d.moneyWontLast && d.status === 'green' && d.availableMoney > 0 && (
-        <div style={{ margin: '0 16px 0', padding: '10px 14px', background: 'var(--fo-pos-soft)', border: '1px solid oklch(0.74 0.16 160 / 0.3)', borderRadius: 'var(--fo-r-md)', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 14 }}>✓</span>
-          <span style={{ fontSize: 12, color: 'var(--fo-pos)', fontWeight: 500 }}>Tienes {formatCOP(d.remaining)} disponibles para el resto del mes.</span>
+      ) : (
+        <div style={{ margin: '14px 16px 0', padding: '10px 14px', background: 'var(--fo-pos-soft)', border: '1px solid oklch(0.74 0.16 160 / 0.3)', borderRadius: 'var(--fo-r-md)' }}>
+          <span style={{ fontSize: 12, color: 'var(--fo-pos)', fontWeight: 600 }}>
+            Te quedan {formatCOP(d.remaining)} para el resto del periodo.
+          </span>
         </div>
       )}
 
-      {/* Footer */}
       <div style={{ padding: '12px 24px 16px' }}>
         <button onClick={() => navigate('/configuracion')} style={{
-          background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-          fontSize: 11, color: 'var(--fo-fg-dim)', fontFamily: 'inherit',
+          background: 'none',
+          border: 'none',
+          padding: 0,
+          cursor: 'pointer',
+          fontSize: 11,
+          color: 'var(--fo-fg-dim)',
+          fontFamily: 'inherit',
         }}>
-          Configurar modalidad de pago →
+          Configurar modalidad de pago
         </button>
       </div>
     </div>
@@ -120,7 +164,7 @@ function KPICell({ label, value, sub, border }) {
       borderLeft: border ? '1px solid var(--fo-line-soft)' : 'none',
     }}>
       <p style={{ margin: 0, fontSize: 11, color: 'var(--fo-fg-dim)', fontWeight: 500 }}>{label}</p>
-      <p style={{ margin: '4px 0 2px', fontSize: 18, fontWeight: 700, color: 'var(--fo-fg)', lineHeight: 1, fontFamily: 'var(--fo-font-num)' }}>{value}</p>
+      <p style={{ margin: '4px 0 2px', fontSize: 18, fontWeight: 800, color: 'var(--fo-fg)', lineHeight: 1, fontFamily: 'var(--fo-font-num)' }}>{value}</p>
       <p style={{ margin: 0, fontSize: 11, color: 'var(--fo-fg-dim)' }}>{sub}</p>
     </div>
   )
@@ -128,9 +172,9 @@ function KPICell({ label, value, sub, border }) {
 
 function FlowRow({ label, value, color, sign }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
       <span style={{ fontSize: 12, color: 'var(--fo-fg-muted)' }}>{label}</span>
-      <span style={{ fontSize: 12, fontWeight: 600, color, fontFamily: 'var(--fo-font-num)' }}>{sign} {formatCOP(value)}</span>
+      <span style={{ fontSize: 12, fontWeight: 700, color, fontFamily: 'var(--fo-font-num)' }}>{sign} {formatCOP(value)}</span>
     </div>
   )
 }
