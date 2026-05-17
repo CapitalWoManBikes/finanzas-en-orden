@@ -41,7 +41,14 @@ export default function LoginPage() {
       await loginWithGoogle()
       navigate('/dashboard')
     } catch (err) {
-      setError('Error Google: ' + (err?.code || err?.message || String(err)))
+      const code = err?.code || ''
+      if (code === 'auth/popup-blocked') {
+        setError('El navegador bloqueó el popup. Permite ventanas emergentes para este sitio e intenta de nuevo.')
+      } else if (code === 'auth/popup-closed-by-user') {
+        setError('Cerraste la ventana de Google antes de completar el inicio de sesión.')
+      } else {
+        setError('Error al iniciar sesión con Google. Intenta de nuevo.')
+      }
     } finally {
       setLoading(false)
     }
