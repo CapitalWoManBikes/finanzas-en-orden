@@ -1,26 +1,33 @@
-export function calculateMonthlySummary({ income, budget, transactions }) {
-  const incomeVal = income?.income ?? 0
-  const txs = transactions ?? []
+const amount = (value) => Math.max(Number(value) || 0, 0)
 
-  const fixedExpensesSpent = txs
-    .filter((t) => t.accountType === 'fixedExpenses')
-    .reduce((s, t) => s + (t.amount || 0), 0)
-  const dailySpent = txs
-    .filter((t) => t.accountType === 'dailySpending')
-    .reduce((s, t) => s + (t.amount || 0), 0)
-  const totalSaved = txs
-    .filter((t) => t.accountType === 'savings')
-    .reduce((s, t) => s + (t.amount || 0), 0)
+const sum = (items, predicate) =>
+  (items ?? []).filter(predicate).reduce((total, item) => total + amount(item.amount), 0)
+
+export function calculateMonthlySummary({ income, budget, transactions, defaultExpenses }) {
+  const incomeVal = amount(income?.income)
+  const txs = transactions ?? []
+  const defaults = defaultExpenses ?? []
+
+  const activeDefaults = defaults.filter((item) => item.isActive !== false)
+  const fixedDefaults = sum(activeDefaults, (item) => item.accountType === 'fixedExpenses')
+  const debtDefaults = sum(activeDefaults, (item) => item.expenseType === 'deuda')
+  const savingsDefaults = sum(activeDefaults, (item) => item.accountType === 'savings')
+
+  const fixedExpensesBudget = amount(budget?.fixedExpensesBudget) || fixedDefaults
+  const savingsBudget = amount(budget?.savingsBudget) || savingsDefaults
+  const plannedAvailableMoney = Math.max(incomeVal - fixedExpensesBudget - savingsBudget, 0)
+  const dailySpendingBudget = amount(budget?.dailySpendingBudget) || plannedAvailableMoney
+  const totalBudget = fixedExpensesBudget + savingsBudget + dailySpendingBudget
+
+  const fixedExpensesSpent = sum(txs, (t) => t.accountType === 'fixedExpenses')
+  const dailySpent = sum(txs, (t) => t.accountType === 'dailySpending')
+  const totalSaved = sum(txs, (t) => t.accountType === 'savings')
 
   const totalSpent = fixedExpensesSpent + dailySpent + totalSaved
   const availableMoney = incomeVal - totalSpent
   const savingsRate = incomeVal > 0 ? Math.round((totalSaved / incomeVal) * 100) : 0
   const spendingRate = incomeVal > 0 ? Math.round((totalSpent / incomeVal) * 100) : 0
-
-  const fixedExpensesBudget = budget?.fixedExpensesBudget ?? 0
-  const savingsBudget = budget?.savingsBudget ?? 0
-  const dailySpendingBudget = budget?.dailySpendingBudget ?? 0
-  const totalBudget = fixedExpensesBudget + savingsBudget + dailySpendingBudget
+  const dailyBudgetRemaining = dailySpendingBudget - dailySpent
 
   return {
     income: incomeVal,
@@ -31,17 +38,23 @@ export function calculateMonthlySummary({ income, budget, transactions }) {
     spendingRate,
     fixedExpensesSpent,
     dailySpent,
+    fixedExpensesRegistered: fixedDefaults,
+    debtCommitments: debtDefaults,
+    savingsGoal: savingsBudget,
     fixedExpensesBudget,
     savingsBudget,
     dailySpendingBudget,
     totalBudget,
+    plannedAvailableMoney,
+    weeklyBudget: Math.round(dailySpendingBudget / 4.345),
     unassignedMoney: incomeVal - totalBudget,
     isOverBudget: totalSpent > incomeVal,
     overBudgetAmount: Math.max(totalSpent - incomeVal, 0),
+    dailyBudgetRemaining,
     accountBalances: {
       fixedExpenses: fixedExpensesBudget - fixedExpensesSpent,
       savings: savingsBudget - totalSaved,
-      dailySpending: dailySpendingBudget - dailySpent,
+      dailySpending: dailyBudgetRemaining,
     },
   }
 }

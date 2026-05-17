@@ -167,8 +167,9 @@ export async function syncMonthlySummary(uid, month, year) {
     getMonthlyBudget(uid, month, year),
     getTransactions(uid, month, year),
   ])
+  const defaultExpenses = await getDefaultExpenses(uid)
 
-  const summary = calculateMonthlySummary({ income, budget, transactions })
+  const summary = calculateMonthlySummary({ income, budget, transactions, defaultExpenses })
   await setMonthlySummary(uid, month, year, summary)
   return summary
 }

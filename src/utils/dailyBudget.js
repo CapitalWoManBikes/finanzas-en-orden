@@ -1,3 +1,5 @@
+import { calculateMonthlySummary } from './financeSummary'
+
 export function getNextPaymentDate(config = {}) {
   const { mode = 'monthly', payDay = 1, firstQuincena = 1, secondQuincena = 16 } = config
   const today = new Date()
@@ -32,35 +34,36 @@ export function formatNextPaymentDate(config) {
   return next.toLocaleDateString('es-CO', { day: 'numeric', month: 'long' })
 }
 
-export function calcDailyData({ income, budget, transactions, paymentConfig }) {
+export function calcDailyData({ income, budget, transactions = [], paymentConfig, defaultExpenses }) {
   const todayStr = new Date().toISOString().split('T')[0]
-  const incomeVal = income?.income ?? 0
-  const dailyBudget = budget?.dailySpendingBudget ?? 0
+  const summary = calculateMonthlySummary({ income, budget, transactions, defaultExpenses })
+  const incomeVal = summary.income
+  const dailyBudget = summary.dailySpendingBudget
 
   const dailyTxs = transactions.filter((t) => t.accountType === 'dailySpending')
-  const fixedTxs = transactions.filter((t) => t.accountType === 'fixedExpenses')
-  const savingsTxs = transactions.filter((t) => t.accountType === 'savings')
 
-  const monthlyDailySpent = dailyTxs.reduce((s, t) => s + (t.amount || 0), 0)
-  const fixedSpent = fixedTxs.reduce((s, t) => s + (t.amount || 0), 0)
-  const savingsSpent = savingsTxs.reduce((s, t) => s + (t.amount || 0), 0)
+  const monthlyDailySpent = summary.dailySpent
+  const fixedSpent = summary.fixedExpensesSpent
+  const savingsSpent = summary.totalSaved
   const todaySpent = dailyTxs
     .filter((t) => t.date === todayStr)
     .reduce((s, t) => s + (t.amount || 0), 0)
 
   const daysLeft = getDaysUntilPayment(paymentConfig)
-  const remaining = Math.max(dailyBudget - monthlyDailySpent, 0)
+  const remaining = Math.max(summary.dailyBudgetRemaining, 0)
   const dailyAllowance = daysLeft > 0 ? Math.round(remaining / daysLeft) : 0
-  const availableMoney = incomeVal - fixedSpent - savingsSpent - monthlyDailySpent
+  const weeklyAllowance = Math.round(remaining / Math.max(daysLeft / 7, 1))
+  const availableMoney = summary.availableMoney
 
   let status = 'green'
-  if (dailyAllowance > 0 && todaySpent > dailyAllowance * 1.5) status = 'red'
+  if (!incomeVal || availableMoney < 0 || (dailyAllowance > 0 && todaySpent > dailyAllowance * 1.5)) status = 'red'
   else if (dailyAllowance > 0 && todaySpent > dailyAllowance) status = 'yellow'
 
-  const moneyWontLast = remaining < dailyAllowance * daysLeft * 0.5 && dailyAllowance > 0
+  const moneyWontLast = incomeVal > 0 && (availableMoney < 0 || todaySpent > dailyAllowance)
 
   return {
     dailyAllowance,
+    weeklyAllowance,
     todaySpent,
     daysLeft,
     nextPaymentDate: formatNextPaymentDate(paymentConfig),
@@ -71,6 +74,9 @@ export function calcDailyData({ income, budget, transactions, paymentConfig }) {
     incomeVal,
     fixedSpent,
     savingsSpent,
+    fixedExpensesRegistered: summary.fixedExpensesRegistered,
+    savingsGoal: summary.savingsGoal,
+    plannedAvailableMoney: summary.plannedAvailableMoney,
     status,
     moneyWontLast,
   }

@@ -36,9 +36,9 @@ export default function DashboardPage() {
   const navigate = useNavigate()
   const [month] = useState(currentMonth())
   const [year] = useState(currentYear())
-  const { income, budget, transactions, loading } = useFinance(month, year)
+  const { income, budget, defaultExpenses, transactions, loading } = useFinance(month, year)
 
-  const summary = calculateMonthlySummary({ income, budget, transactions })
+  const summary = calculateMonthlySummary({ income, budget, transactions, defaultExpenses })
   const incomeVal = summary.income
   const totalSpent = summary.totalSpent
   const totalSaved = summary.totalSaved
@@ -46,6 +46,7 @@ export default function DashboardPage() {
   const savingsRate = summary.savingsRate
   const spendRate = summary.spendingRate
   const hasActivity = transactions.length > 0
+  const hasConfiguredPlan = summary.fixedExpensesBudget > 0 || summary.savingsBudget > 0
 
   const alerts = []
   if (!income) {
@@ -77,6 +78,15 @@ export default function DashboardPage() {
       })
     }
 
+    if (!hasConfiguredPlan) {
+      alerts.push({
+        tone: 'warn',
+        msg: 'AÃºn no tienes gastos fijos o metas configuradas. El presupuesto se calcula solo con tu ingreso.',
+        linkLabel: 'Configurar',
+        link: '/gastos-base'
+      })
+    }
+
     if (hasActivity && savingsRate < 10) {
       alerts.push({
         tone: 'warn',
@@ -97,9 +107,9 @@ export default function DashboardPage() {
   const pieData = Object.entries(byCategory).map(([name, value]) => ({ name, value }))
 
   const barData = [
-    { name: 'G. Fijos',     presupuesto: budget?.fixedExpensesBudget ?? 0, gastado: transactions.filter(t => t.accountType === 'fixedExpenses').reduce((s, t) => s + t.amount, 0) },
-    { name: 'Ahorro',       presupuesto: budget?.savingsBudget ?? 0,        gastado: transactions.filter(t => t.accountType === 'savings').reduce((s, t) => s + t.amount, 0) },
-    { name: 'Gasto diario', presupuesto: budget?.dailySpendingBudget ?? 0,  gastado: transactions.filter(t => t.accountType === 'dailySpending').reduce((s, t) => s + t.amount, 0) },
+    { name: 'G. Fijos',     presupuesto: summary.fixedExpensesBudget, gastado: summary.fixedExpensesSpent },
+    { name: 'Ahorro',       presupuesto: summary.savingsBudget,       gastado: summary.totalSaved },
+    { name: 'Gasto diario', presupuesto: summary.dailySpendingBudget, gastado: summary.dailySpent },
   ]
 
   if (loading) return (
@@ -145,11 +155,15 @@ export default function DashboardPage() {
         ))}
 
         {/* Daily Widget */}
-        {income && budget?.dailySpendingBudget > 0 && (
-          <div style={{ marginBottom: 20 }}>
-            <DailyWidget income={income} budget={budget} transactions={transactions} paymentConfig={userData?.paymentConfig}/>
-          </div>
-        )}
+        <div style={{ marginBottom: 20 }}>
+          <DailyWidget
+            income={income}
+            budget={budget}
+            defaultExpenses={defaultExpenses}
+            transactions={transactions}
+            paymentConfig={userData?.paymentConfig}
+          />
+        </div>
 
         {/* KPIs */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 16 }} className="kpi-grid">

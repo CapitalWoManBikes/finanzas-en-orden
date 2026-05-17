@@ -4,6 +4,7 @@ import AppLayout from '../components/layout/AppLayout'
 import {
   getMonthlyBudget,
   getMonthlyIncome,
+  getDefaultExpenses,
   getTransactions,
   addTransaction,
   updateTransaction,
@@ -40,6 +41,7 @@ export default function GastosPage() {
   const [year, setYear]   = useState(currentYear())
   const [income, setIncome] = useState(null)
   const [budget, setBudget] = useState(null)
+  const [defaultExpenses, setDefaultExpenses] = useState([])
   const [txs, setTxs]     = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving]   = useState(false)
@@ -52,13 +54,15 @@ export default function GastosPage() {
     if (!user) return
     setLoading(true);
     try {
-      const [incomeData, budgetData, txs] = await Promise.all([
+      const [incomeData, budgetData, defaults, txs] = await Promise.all([
         getMonthlyIncome(user.uid, month, year),
         getMonthlyBudget(user.uid, month, year),
+        getDefaultExpenses(user.uid),
         getTransactions(user.uid, month, year),
       ]);
       setIncome(incomeData);
       setBudget(budgetData);
+      setDefaultExpenses(defaults);
       setTxs(txs);
     } catch (e) {
       console.error("Error loading transactions", e);
@@ -93,7 +97,7 @@ export default function GastosPage() {
     (!filter.search || t.name.toLowerCase().includes(filter.search.toLowerCase()))
   )
   const total = filtered.reduce((s, t) => s + t.amount, 0)
-  const summary = calculateMonthlySummary({ income, budget, transactions: txs })
+  const summary = calculateMonthlySummary({ income, budget, defaultExpenses, transactions: txs })
   const balanceTone = summary.availableMoney < 0 ? 'var(--fo-neg)' : summary.spendingRate > 85 ? 'var(--fo-warn)' : 'var(--fo-pos)'
   const balanceMsg = !income
     ? 'Registra un ingreso para activar el saldo del mes.'
