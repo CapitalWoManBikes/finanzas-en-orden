@@ -40,8 +40,8 @@ export default function LoginPage() {
     try {
       await loginWithGoogle()
       navigate('/dashboard')
-    } catch {
-      setError('Error al iniciar sesión con Google.')
+    } catch (err) {
+      setError('Error Google: ' + (err?.code || err?.message || String(err)))
     } finally {
       setLoading(false)
     }
