@@ -3,7 +3,8 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
   updateProfile,
 } from 'firebase/auth'
@@ -18,6 +19,31 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth)
+        if (result?.user) {
+          const existing = await getUser(result.user.uid)
+          if (!existing) {
+            await createUser(result.user.uid, {
+              name: result.user.displayName,
+              email: result.user.email,
+              photoURL: result.user.photoURL,
+              provider: 'google',
+            })
+          } else {
+            await updateUser(result.user.uid, {
+              name: result.user.displayName,
+              photoURL: result.user.photoURL,
+            })
+          }
+        }
+      } catch (e) {
+        console.error('Redirect result error:', e)
+      }
+    }
+    handleRedirectResult()
+
     return onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const data = await getUser(firebaseUser.uid)
@@ -55,24 +81,7 @@ export function AuthProvider({ children }) {
   }
 
   const loginWithGoogle = async () => {
-    const cred = await signInWithPopup(auth, googleProvider)
-    const existing = await getUser(cred.user.uid)
-    if (!existing) {
-      await createUser(cred.user.uid, {
-        name: cred.user.displayName,
-        email: cred.user.email,
-        photoURL: cred.user.photoURL,
-        provider: 'google',
-      })
-    } else {
-      await updateUser(cred.user.uid, {
-        name: cred.user.displayName,
-        photoURL: cred.user.photoURL,
-      })
-    }
-    const data = await getUser(cred.user.uid)
-    setUserData(data)
-    return cred.user
+    await signInWithRedirect(auth, googleProvider)
   }
 
   const logout = () => signOut(auth)
