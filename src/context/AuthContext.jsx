@@ -19,51 +19,34 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    let authUnsubscribe = null
+    // Handle redirect result in parallel — don't block onAuthStateChanged
+    getRedirectResult(auth).catch((e) => console.error('Redirect result error:', e))
 
-    const init = async () => {
-      // Await redirect result FIRST so the Firestore doc exists before onAuthStateChanged fires
-      try {
-        const result = await getRedirectResult(auth)
-        if (result?.user) {
-          const existing = await getUser(result.user.uid)
-          if (!existing) {
-            await createUser(result.user.uid, {
-              name: result.user.displayName,
-              email: result.user.email,
-              photoURL: result.user.photoURL,
-              provider: 'google',
-            })
-          } else {
-            await updateUser(result.user.uid, {
-              name: result.user.displayName,
-              photoURL: result.user.photoURL,
-            })
-          }
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        let data = await getUser(firebaseUser.uid)
+
+        if (!data) {
+          // New Google user or redirect result not yet processed — create doc now
+          await createUser(firebaseUser.uid, {
+            name: firebaseUser.displayName ?? firebaseUser.email,
+            email: firebaseUser.email,
+            photoURL: firebaseUser.photoURL ?? null,
+            provider: firebaseUser.providerData?.[0]?.providerId ?? 'google',
+          })
+          data = await getUser(firebaseUser.uid)
         }
-      } catch (e) {
-        console.error('Redirect result error:', e)
+
+        setUser(firebaseUser)
+        setUserData(data)
+      } else {
+        setUser(null)
+        setUserData(null)
       }
+      setLoading(false)
+    })
 
-      // Subscribe after redirect handling so getUser finds the doc already created
-      authUnsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-        if (firebaseUser) {
-          const data = await getUser(firebaseUser.uid)
-          setUser(firebaseUser)
-          setUserData(data)
-        } else {
-          setUser(null)
-          setUserData(null)
-        }
-        setLoading(false)
-      })
-    }
-
-    init()
-
-    return () => {
-      if (authUnsubscribe) authUnsubscribe()
-    }
+    return unsubscribe
   }, [])
 
   const refreshUserData = async () => {
