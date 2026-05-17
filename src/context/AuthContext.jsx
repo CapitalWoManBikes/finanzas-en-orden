@@ -19,7 +19,10 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const handleRedirectResult = async () => {
+    let authUnsubscribe = null
+
+    const init = async () => {
+      // Await redirect result FIRST so the Firestore doc exists before onAuthStateChanged fires
       try {
         const result = await getRedirectResult(auth)
         if (result?.user) {
@@ -41,20 +44,26 @@ export function AuthProvider({ children }) {
       } catch (e) {
         console.error('Redirect result error:', e)
       }
-    }
-    handleRedirectResult()
 
-    return onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        const data = await getUser(firebaseUser.uid)
-        setUser(firebaseUser)
-        setUserData(data)
-      } else {
-        setUser(null)
-        setUserData(null)
-      }
-      setLoading(false)
-    })
+      // Subscribe after redirect handling so getUser finds the doc already created
+      authUnsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        if (firebaseUser) {
+          const data = await getUser(firebaseUser.uid)
+          setUser(firebaseUser)
+          setUserData(data)
+        } else {
+          setUser(null)
+          setUserData(null)
+        }
+        setLoading(false)
+      })
+    }
+
+    init()
+
+    return () => {
+      if (authUnsubscribe) authUnsubscribe()
+    }
   }, [])
 
   const refreshUserData = async () => {
