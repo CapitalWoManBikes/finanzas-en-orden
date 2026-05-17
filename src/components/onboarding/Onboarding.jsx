@@ -2,37 +2,35 @@ import { useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { setMonthlyIncome, setMonthlyBudget, addDefaultExpense, updateUser } from '../../lib/firestore'
 import { MONTHS, currentMonth, currentYear, formatCOP } from '../../utils/format'
+import { Card, Button } from '../fo'
 import Spinner from '../ui/Spinner'
 
 const STEPS = ['Ingreso', 'Gastos base', 'Distribución']
 
-// Porcentajes objetivo recomendados
 const TARGETS = {
-  fixedExpenses: { pct: 0.52, label: 'Gastos fijos', dot: 'bg-blue-400', bar: 'bg-blue-400', badge: 'bg-blue-50 text-blue-700' },
-  savings:       { pct: 0.15, label: 'Ahorro',       dot: 'bg-violet-400', bar: 'bg-violet-400', badge: 'bg-violet-50 text-violet-700' },
-  dailySpending: { pct: 0.33, label: 'G. diario',    dot: 'bg-amber-400', bar: 'bg-amber-400', badge: 'bg-amber-50 text-amber-700' },
+  fixedExpenses: { pct: 0.52, label: 'Gastos fijos',  color: 'oklch(0.65 0.18 255)' },
+  savings:       { pct: 0.15, label: 'Ahorro',         color: 'oklch(0.74 0.16 160)' },
+  dailySpending: { pct: 0.33, label: 'Gasto diario',   color: 'oklch(0.80 0.16 80)'  },
 }
 
-// Redondea al múltiplo de 1000 más cercano
 const r1k = (n) => Math.round(n / 1000) * 1000
 
-// Genera gastos sugeridos proporcionales al ingreso
 function generateSuggestedExpenses(income) {
   return [
-    { name: 'Arriendo',            amount: r1k(income * 0.30), category: 'Vivienda',      accountType: 'fixedExpenses', expenseType: 'fijo',     isActive: true,  isRecurring: true },
-    { name: 'Agua',                amount: r1k(income * 0.016), category: 'Servicios',    accountType: 'fixedExpenses', expenseType: 'fijo',     isActive: true,  isRecurring: true },
-    { name: 'Luz',                 amount: r1k(income * 0.016), category: 'Servicios',    accountType: 'fixedExpenses', expenseType: 'fijo',     isActive: true,  isRecurring: true },
-    { name: 'Gas',                 amount: r1k(income * 0.010), category: 'Servicios',    accountType: 'fixedExpenses', expenseType: 'fijo',     isActive: true,  isRecurring: true },
-    { name: 'Internet',            amount: r1k(income * 0.018), category: 'Servicios',    accountType: 'fixedExpenses', expenseType: 'fijo',     isActive: true,  isRecurring: true },
-    { name: 'Celular',             amount: r1k(income * 0.016), category: 'Servicios',    accountType: 'fixedExpenses', expenseType: 'fijo',     isActive: true,  isRecurring: true },
-    { name: 'Transporte',          amount: r1k(income * 0.07),  category: 'Transporte',   accountType: 'fixedExpenses', expenseType: 'fijo',     isActive: true,  isRecurring: true },
-    { name: 'Deudas',              amount: r1k(income * 0.05),  category: 'Deudas',       accountType: 'fixedExpenses', expenseType: 'deuda',    isActive: false, isRecurring: true },
-    { name: 'Alimentación',        amount: r1k(income * 0.20),  category: 'Alimentación', accountType: 'dailySpending', expenseType: 'variable', isActive: true,  isRecurring: true },
-    { name: 'Aseo personal',       amount: r1k(income * 0.05),  category: 'Personal',     accountType: 'dailySpending', expenseType: 'variable', isActive: true,  isRecurring: true },
-    { name: 'Insumos hogar',       amount: r1k(income * 0.05),  category: 'Hogar',        accountType: 'dailySpending', expenseType: 'variable', isActive: true,  isRecurring: true },
-    { name: 'Suscripciones',       amount: r1k(income * 0.02),  category: 'Ocio',         accountType: 'dailySpending', expenseType: 'fijo',     isActive: false, isRecurring: true },
-    { name: 'Fondo de emergencia', amount: r1k(income * 0.10),  category: 'Ahorro',       accountType: 'savings',       expenseType: 'ahorro',   isActive: true,  isRecurring: true },
-    { name: 'Ahorro meta',         amount: r1k(income * 0.05),  category: 'Ahorro',       accountType: 'savings',       expenseType: 'ahorro',   isActive: false, isRecurring: true },
+    { name: 'Arriendo',            amount: r1k(income * 0.30),  category: 'Vivienda',      accountType: 'fixedExpenses', expenseType: 'fijo',     isActive: true,  isRecurring: true },
+    { name: 'Agua',                amount: r1k(income * 0.016), category: 'Servicios',     accountType: 'fixedExpenses', expenseType: 'fijo',     isActive: true,  isRecurring: true },
+    { name: 'Luz',                 amount: r1k(income * 0.016), category: 'Servicios',     accountType: 'fixedExpenses', expenseType: 'fijo',     isActive: true,  isRecurring: true },
+    { name: 'Gas',                 amount: r1k(income * 0.010), category: 'Servicios',     accountType: 'fixedExpenses', expenseType: 'fijo',     isActive: true,  isRecurring: true },
+    { name: 'Internet',            amount: r1k(income * 0.018), category: 'Servicios',     accountType: 'fixedExpenses', expenseType: 'fijo',     isActive: true,  isRecurring: true },
+    { name: 'Celular',             amount: r1k(income * 0.016), category: 'Servicios',     accountType: 'fixedExpenses', expenseType: 'fijo',     isActive: true,  isRecurring: true },
+    { name: 'Transporte',          amount: r1k(income * 0.07),  category: 'Transporte',    accountType: 'fixedExpenses', expenseType: 'fijo',     isActive: true,  isRecurring: true },
+    { name: 'Deudas',              amount: r1k(income * 0.05),  category: 'Deudas',        accountType: 'fixedExpenses', expenseType: 'deuda',    isActive: false, isRecurring: true },
+    { name: 'Alimentación',        amount: r1k(income * 0.20),  category: 'Alimentación',  accountType: 'dailySpending', expenseType: 'variable', isActive: true,  isRecurring: true },
+    { name: 'Aseo personal',       amount: r1k(income * 0.05),  category: 'Personal',      accountType: 'dailySpending', expenseType: 'variable', isActive: true,  isRecurring: true },
+    { name: 'Insumos hogar',       amount: r1k(income * 0.05),  category: 'Hogar',         accountType: 'dailySpending', expenseType: 'variable', isActive: true,  isRecurring: true },
+    { name: 'Suscripciones',       amount: r1k(income * 0.02),  category: 'Ocio',          accountType: 'dailySpending', expenseType: 'fijo',     isActive: false, isRecurring: true },
+    { name: 'Fondo de emergencia', amount: r1k(income * 0.10),  category: 'Ahorro',        accountType: 'savings',       expenseType: 'ahorro',   isActive: true,  isRecurring: true },
+    { name: 'Ahorro meta',         amount: r1k(income * 0.05),  category: 'Ahorro',        accountType: 'savings',       expenseType: 'ahorro',   isActive: false, isRecurring: true },
   ]
 }
 
@@ -45,9 +43,18 @@ function calcConfigured(expenses) {
   return sum
 }
 
-const inputBase = 'flex items-center border border-gray-200 rounded-xl focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-emerald-500 overflow-hidden bg-white'
-const inputPrefix = 'px-3 text-gray-400 font-semibold border-r border-gray-200 bg-gray-50 py-3 flex-shrink-0 text-sm'
-const inputField = 'flex-1 px-3 py-3 focus:outline-none bg-white min-w-0 text-slate-800 font-semibold'
+function FoInput({ value, onChange, onFocus, placeholder, large = false, suffix }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', background: 'var(--fo-surface-2)', border: '1px solid var(--fo-line)', borderRadius: 'var(--fo-r-md)', overflow: 'hidden' }}>
+      <span style={{ padding: large ? '14px 16px' : '10px 14px', color: 'var(--fo-fg-dim)', fontSize: large ? 16 : 13, fontWeight: 600, borderRight: '1px solid var(--fo-line)', background: 'var(--fo-surface-3)', flexShrink: 0 }}>$</span>
+      <input
+        type="number" min="0" value={value} onChange={onChange} onFocus={onFocus} placeholder={placeholder}
+        style={{ flex: 1, padding: large ? '14px 16px' : '10px 14px', background: 'transparent', border: 'none', outline: 'none', color: 'var(--fo-fg)', fontSize: large ? 20 : 14, fontWeight: 600, fontFamily: 'inherit', minWidth: 0 }}
+      />
+      {suffix}
+    </div>
+  )
+}
 
 export default function Onboarding() {
   const { user, refreshUserData } = useAuth()
@@ -74,20 +81,11 @@ export default function Onboarding() {
 
   const removeExpense = (i) => setExpenses(expenses.filter((_, idx) => idx !== i))
 
-  // Al pasar al step 1: genera gastos sugeridos basados en el ingreso
-  const goToExpenses = () => {
-    setExpenses(generateSuggestedExpenses(incomeNum))
-    setStep(1)
-  }
+  const goToExpenses = () => { setExpenses(generateSuggestedExpenses(incomeNum)); setStep(1) }
 
-  // Al pasar al step 2: precalcula distribución desde gastos configurados
   const goToDistribution = () => {
     const configured = calcConfigured(expenses)
-    setBudget({
-      fixedExpenses: configured.fixedExpenses || '',
-      savings: configured.savings || '',
-      dailySpending: configured.dailySpending || '',
-    })
+    setBudget({ fixedExpenses: configured.fixedExpenses || '', savings: configured.savings || '', dailySpending: configured.dailySpending || '' })
     setStep(2)
   }
 
@@ -116,171 +114,127 @@ export default function Onboarding() {
   const configured = calcConfigured(expenses)
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center lg:justify-center lg:p-6">
-      <div className="flex-1 lg:flex-none w-full max-w-lg bg-white lg:rounded-2xl lg:shadow-2xl flex flex-col overflow-hidden">
+    <div className="fo-app" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div style={{ width: '100%', maxWidth: 520 }}>
 
-        {/* Header */}
-        <div className="bg-emerald-500 px-5 pt-10 pb-5 lg:px-8 lg:pt-7 lg:pb-6 flex-shrink-0">
-          <div className="flex items-center gap-2.5 mb-5">
-            <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-              <span className="text-white font-black text-base leading-none">$</span>
-            </div>
-            <h1 className="text-lg font-bold text-white">Configura tus finanzas</h1>
+        {/* Stepper */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+            {STEPS.map((_, i) => (
+              <div key={i} style={{ flex: 1, height: 3, borderRadius: 99, background: i <= step ? 'var(--fo-accent)' : 'var(--fo-line)', transition: 'background 300ms' }} />
+            ))}
           </div>
-          <div className="space-y-2">
-            <div className="flex gap-1.5">
-              {STEPS.map((_, i) => (
-                <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= step ? 'bg-white' : 'bg-white/30'}`} />
-              ))}
-            </div>
-            <div className="flex justify-between">
-              {STEPS.map((s, i) => (
-                <span key={s} className={`text-xs font-semibold ${i <= step ? 'text-white' : 'text-emerald-200'}`}>
-                  {i < step ? '✓ ' : ''}{s}
-                </span>
-              ))}
-            </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            {STEPS.map((s, i) => (
+              <span key={s} style={{ fontSize: 11, fontWeight: 600, color: i <= step ? 'var(--fo-accent-fg)' : 'var(--fo-fg-faint)' }}>
+                {i < step ? '✓ ' : ''}{s}
+              </span>
+            ))}
           </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto px-5 py-6 lg:px-8 lg:py-7">
+        <Card style={{ padding: 28 }}>
 
-          {/* Step 0: Income */}
+          {/* Step 0 — Ingreso */}
           {step === 0 && (
-            <div className="space-y-5">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               <div>
-                <h2 className="text-xl font-bold text-slate-900">¿Cuánto ganas al mes?</h2>
-                <p className="text-slate-500 text-sm mt-1">Ingresa tu salario o ingreso mensual principal.</p>
+                <h2 style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 6 }}>¿Cuánto ganas al mes?</h2>
+                <p style={{ fontSize: 13, color: 'var(--fo-fg-muted)' }}>Ingresa tu salario o ingreso mensual principal.</p>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--fo-fg-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
                   Ingreso — {MONTHS[month - 1]} {year}
-                </label>
-                <div className={inputBase}>
-                  <span className={`${inputPrefix} text-base`}>$</span>
-                  <input
-                    type="number" min="0"
-                    value={income}
-                    onChange={(e) => setIncome(e.target.value)}
-                    onFocus={() => setIncome('')}
-                    className={`${inputField} text-xl`}
-                    placeholder="3,000,000"
-                  />
-                </div>
-                {incomeNum > 0 && (
-                  <p className="text-emerald-600 font-semibold mt-2 text-sm">{formatCOP(incomeNum)}</p>
-                )}
+                </p>
+                <FoInput large value={income} onChange={(e) => setIncome(e.target.value)} onFocus={() => setIncome('')} placeholder="3,000,000" />
+                {incomeNum > 0 && <p style={{ marginTop: 8, fontSize: 13, fontWeight: 600, color: 'var(--fo-pos)' }}>{formatCOP(incomeNum)}</p>}
               </div>
 
-              {/* Preview de distribución */}
               {incomeNum > 0 && (
-                <div className="bg-slate-50 rounded-2xl p-4 space-y-3">
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Distribución sugerida</p>
+                <div style={{ background: 'var(--fo-surface-2)', borderRadius: 'var(--fo-r-md)', padding: 16 }}>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--fo-fg-dim)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Distribución sugerida</p>
                   {Object.entries(TARGETS).map(([key, t]) => (
-                    <div key={key} className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.dot}`} />
-                        <span className="text-xs text-slate-600 font-medium">{t.label}</span>
+                    <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: 99, background: t.color }} />
+                        <span style={{ fontSize: 13, color: 'var(--fo-fg-muted)' }}>{t.label}</span>
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${t.badge}`}>
-                          {Math.round(t.pct * 100)}%
-                        </span>
-                        <span className="text-xs font-bold text-slate-700 w-24 text-right">{formatCOP(r1k(incomeNum * t.pct))}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: 'var(--fo-surface-3)', color: 'var(--fo-fg-muted)' }}>{Math.round(t.pct * 100)}%</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--fo-fg)', fontVariantNumeric: 'tabular-nums' }}>{formatCOP(r1k(incomeNum * t.pct))}</span>
                       </div>
                     </div>
                   ))}
-                  <p className="text-[10px] text-slate-400 pt-1">Los valores se autocompletarán en el siguiente paso.</p>
+                  <p style={{ fontSize: 11, color: 'var(--fo-fg-faint)', marginTop: 4 }}>Los valores se autocompletarán en el siguiente paso.</p>
                 </div>
               )}
             </div>
           )}
 
-          {/* Step 1: Gastos base */}
+          {/* Step 1 — Gastos base */}
           {step === 1 && (
-            <div className="space-y-4">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
-                <h2 className="text-xl font-bold text-slate-900">Gastos recurrentes</h2>
-                <p className="text-slate-500 text-sm mt-1">Valores calculados para <span className="font-semibold text-emerald-600">{formatCOP(incomeNum)}</span>. Edítalos libremente.</p>
+                <h2 style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 6 }}>Gastos recurrentes</h2>
+                <p style={{ fontSize: 13, color: 'var(--fo-fg-muted)' }}>
+                  Calculados para <span style={{ fontWeight: 700, color: 'var(--fo-pos)' }}>{formatCOP(incomeNum)}</span>. Edítalos libremente.
+                </p>
               </div>
 
-              {/* Recomendado vs configurado */}
-              <div className="grid grid-cols-3 gap-2">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
                 {Object.entries(TARGETS).map(([key, t]) => {
                   const recommended = r1k(incomeNum * t.pct)
                   const conf = configured[key]
                   const pct = recommended > 0 ? Math.min(Math.round((conf / recommended) * 100), 100) : 0
                   const over = conf > recommended * 1.1
                   return (
-                    <div key={key} className="bg-gray-50 rounded-xl p-3">
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <span className={`w-1.5 h-1.5 rounded-full ${t.dot}`} />
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide truncate">{t.label}</p>
+                    <div key={key} style={{ background: 'var(--fo-surface-2)', borderRadius: 'var(--fo-r-sm)', padding: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                        <div style={{ width: 6, height: 6, borderRadius: 99, background: t.color }} />
+                        <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--fo-fg-dim)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t.label}</p>
                       </div>
-                      <p className="text-xs font-bold text-slate-800">{formatCOP(conf)}</p>
-                      <p className="text-[10px] text-slate-400">de {formatCOP(recommended)}</p>
-                      <div className="mt-1.5 w-full bg-gray-200 rounded-full h-1">
-                        <div
-                          className={`h-1 rounded-full transition-all ${over ? 'bg-red-400' : t.bar}`}
-                          style={{ width: `${pct}%` }}
-                        />
+                      <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--fo-fg)', fontVariantNumeric: 'tabular-nums' }}>{formatCOP(conf)}</p>
+                      <p style={{ fontSize: 10, color: 'var(--fo-fg-faint)' }}>de {formatCOP(recommended)}</p>
+                      <div style={{ marginTop: 6, height: 3, borderRadius: 99, background: 'var(--fo-line)' }}>
+                        <div style={{ height: 3, borderRadius: 99, width: `${pct}%`, background: over ? 'var(--fo-neg)' : t.color, transition: 'width 300ms' }} />
                       </div>
                     </div>
                   )
                 })}
               </div>
 
-              {/* Lista de gastos */}
-              <div className="space-y-2">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 300, overflowY: 'auto' }}>
                 {expenses.map((exp, i) => (
-                  <div key={i} className={`p-3 border rounded-xl transition ${exp.isActive ? 'border-gray-200 bg-white' : 'border-gray-100 bg-gray-50 opacity-50'}`}>
-                    <div className="flex items-center gap-3 mb-2">
+                  <div key={i} style={{ padding: 12, border: '1px solid var(--fo-line)', borderRadius: 'var(--fo-r-sm)', background: exp.isActive ? 'var(--fo-surface-2)' : 'transparent', opacity: exp.isActive ? 1 : 0.45 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                       <button
                         onClick={() => updateExpense(i, 'isActive', !exp.isActive)}
-                        className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition
-                          ${exp.isActive ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300'}`}
+                        style={{ width: 18, height: 18, borderRadius: 5, flexShrink: 0, cursor: 'pointer', border: exp.isActive ? 'none' : '2px solid var(--fo-line)', background: exp.isActive ? 'var(--fo-accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       >
-                        {exp.isActive && (
-                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
+                        {exp.isActive && <span style={{ color: '#fff', fontSize: 10, fontWeight: 900 }}>✓</span>}
                       </button>
                       <input
-                        type="text"
-                        value={exp.name}
-                        onChange={(e) => updateExpense(i, 'name', e.target.value)}
-                        className="flex-1 bg-transparent focus:outline-none font-semibold text-slate-800 text-sm min-w-0"
-                        placeholder="Nombre del gasto"
+                        type="text" value={exp.name} onChange={(e) => updateExpense(i, 'name', e.target.value)} placeholder="Nombre del gasto"
+                        style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--fo-fg)', fontSize: 13, fontWeight: 600, fontFamily: 'inherit' }}
                       />
-                      <button
-                        onClick={() => removeExpense(i)}
-                        className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-50 transition flex-shrink-0"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
+                      <button onClick={() => removeExpense(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fo-fg-faint)', fontSize: 18, padding: '0 4px', lineHeight: 1 }}>×</button>
                     </div>
-                    <div className="flex items-center gap-2 pl-8">
+                    <div style={{ display: 'flex', gap: 8, paddingLeft: 28 }}>
                       <select
-                        value={exp.accountType}
-                        onChange={(e) => updateExpense(i, 'accountType', e.target.value)}
-                        className="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none bg-white text-slate-600 font-medium"
+                        value={exp.accountType} onChange={(e) => updateExpense(i, 'accountType', e.target.value)}
+                        style={{ flex: 1, background: 'var(--fo-surface-3)', border: '1px solid var(--fo-line)', borderRadius: 8, padding: '6px 10px', fontSize: 11, color: 'var(--fo-fg-muted)', fontFamily: 'inherit', outline: 'none' }}
                       >
                         <option value="fixedExpenses">Gastos fijos</option>
                         <option value="savings">Ahorro</option>
                         <option value="dailySpending">Gasto diario</option>
                       </select>
-                      <div className="flex items-center border border-gray-200 rounded-lg focus-within:ring-1 focus-within:ring-emerald-500 overflow-hidden bg-white flex-shrink-0">
-                        <span className="px-2 text-gray-400 text-xs font-semibold border-r border-gray-200 bg-gray-50 py-1.5 flex-shrink-0">$</span>
+                      <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--fo-line)', borderRadius: 8, overflow: 'hidden', background: 'var(--fo-surface-3)', flexShrink: 0 }}>
+                        <span style={{ padding: '6px 8px', fontSize: 11, color: 'var(--fo-fg-dim)', borderRight: '1px solid var(--fo-line)' }}>$</span>
                         <input
-                          type="number" min="0"
-                          value={exp.amount}
+                          type="number" min="0" value={exp.amount}
                           onChange={(e) => updateExpense(i, 'amount', e.target.value)}
                           onFocus={() => { const u = [...expenses]; u[i] = { ...u[i], amount: '' }; setExpenses(u) }}
-                          className="w-28 px-2 py-1.5 text-sm focus:outline-none bg-white font-semibold text-slate-700"
+                          style={{ width: 96, padding: '6px 8px', background: 'transparent', border: 'none', outline: 'none', color: 'var(--fo-fg)', fontSize: 12, fontWeight: 600, fontFamily: 'inherit' }}
                         />
                       </div>
                     </div>
@@ -290,114 +244,80 @@ export default function Onboarding() {
 
               <button
                 onClick={addExpense}
-                className="flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 text-sm font-semibold transition"
+                style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fo-accent-fg)', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', padding: 0 }}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Agregar gasto
+                <span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Agregar gasto
               </button>
             </div>
           )}
 
-          {/* Step 2: Distribución */}
+          {/* Step 2 — Distribución */}
           {step === 2 && (
-            <div className="space-y-5">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               <div>
-                <h2 className="text-xl font-bold text-slate-900">Distribuye tu ingreso</h2>
-                <div className="flex items-center justify-between mt-1">
-                  <p className="text-slate-500 text-sm">Ingreso: <span className="font-bold text-emerald-600">{formatCOP(incomeNum)}</span></p>
-                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${remaining < 0 ? 'bg-red-50 text-red-600' : remaining === 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
+                <h2 style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 6 }}>Distribuye tu ingreso</h2>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <p style={{ fontSize: 13, color: 'var(--fo-fg-muted)' }}>
+                    Ingreso: <span style={{ fontWeight: 700, color: 'var(--fo-pos)' }}>{formatCOP(incomeNum)}</span>
+                  </p>
+                  <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 99, background: remaining < 0 ? 'var(--fo-neg-soft)' : remaining === 0 ? 'var(--fo-pos-soft)' : 'var(--fo-surface-3)', color: remaining < 0 ? 'var(--fo-neg)' : remaining === 0 ? 'var(--fo-pos)' : 'var(--fo-fg-muted)' }}>
                     {remaining === 0 ? '✓ Completo' : `Sin asignar: ${formatCOP(remaining)}`}
                   </span>
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {Object.entries(TARGETS).map(([key, t]) => {
                   const recommended = r1k(incomeNum * t.pct)
                   const pct = incomeNum > 0 ? Math.round((recommended / incomeNum) * 100) : 0
                   return (
                     <div key={key}>
-                      <div className="flex justify-between items-center mb-1.5">
-                        <div className="flex items-center gap-2">
-                          <span className={`w-2 h-2 rounded-full ${t.dot}`} />
-                          <label className="text-sm font-semibold text-slate-700">{t.label}</label>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ width: 8, height: 8, borderRadius: 99, background: t.color }} />
+                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--fo-fg)' }}>{t.label}</span>
                         </div>
-                        <span className="text-xs text-slate-400">
-                          Sugerido: <span className="font-semibold text-slate-600">{formatCOP(recommended)}</span>
-                          <span className="text-emerald-500 ml-1">({pct}%)</span>
+                        <span style={{ fontSize: 11, color: 'var(--fo-fg-faint)' }}>
+                          Sugerido: <span style={{ fontWeight: 600, color: 'var(--fo-fg-muted)' }}>{formatCOP(recommended)}</span>
+                          <span style={{ color: 'var(--fo-accent-fg)', marginLeft: 4 }}>({pct}%)</span>
                         </span>
                       </div>
-                      <div className={inputBase}>
-                        <span className={inputPrefix}>$</span>
-                        <input
-                          type="number" min="0"
-                          value={budget[key]}
-                          onChange={(e) => setBudget({ ...budget, [key]: e.target.value })}
-                          onFocus={() => setBudget((b) => ({ ...b, [key]: '' }))}
-                          className={inputField}
-                          placeholder="0"
-                        />
-                        {String(budget[key]) !== String(recommended) && (
+                      <FoInput
+                        value={budget[key]}
+                        onChange={(e) => setBudget({ ...budget, [key]: e.target.value })}
+                        onFocus={() => setBudget((b) => ({ ...b, [key]: '' }))}
+                        placeholder="0"
+                        suffix={String(budget[key]) !== String(recommended) && (
                           <button
-                            type="button"
                             onClick={() => setBudget({ ...budget, [key]: recommended })}
-                            className="flex-shrink-0 text-xs text-emerald-600 font-semibold bg-emerald-50 px-3 py-1 mr-2 rounded-lg hover:bg-emerald-100 transition"
+                            style={{ padding: '6px 12px', marginRight: 8, fontSize: 11, fontWeight: 700, color: 'var(--fo-accent-fg)', background: 'var(--fo-accent-soft)', border: 'none', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}
                           >
                             Usar
                           </button>
                         )}
-                      </div>
+                      />
                     </div>
                   )
                 })}
               </div>
             </div>
           )}
-        </div>
 
-        {/* Footer */}
-        <div className="flex-shrink-0 px-5 py-5 lg:px-8 border-t border-gray-100 flex justify-between items-center bg-white">
-          {step > 0 ? (
-            <button
-              onClick={() => setStep(step - 1)}
-              className="flex items-center gap-1.5 px-4 py-2.5 border border-gray-200 rounded-xl font-semibold text-slate-600 hover:bg-gray-50 transition text-sm"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Atrás
-            </button>
-          ) : <div />}
+          {/* Footer */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--fo-line)' }}>
+            {step > 0
+              ? <Button variant="ghost" onClick={() => setStep(step - 1)}>← Atrás</Button>
+              : <div />}
 
-          {step === 0 && (
-            <button
-              onClick={goToExpenses}
-              disabled={!incomeNum}
-              className="w-48 py-4 bg-emerald-500 text-white font-bold rounded-2xl hover:bg-emerald-600 transition disabled:opacity-40 text-base shadow-sm"
-            >
-              Continuar
-            </button>
-          )}
-          {step === 1 && (
-            <button
-              onClick={goToDistribution}
-              className="w-48 py-4 bg-emerald-500 text-white font-bold rounded-2xl hover:bg-emerald-600 transition text-base shadow-sm"
-            >
-              Continuar
-            </button>
-          )}
-          {step === 2 && (
-            <button
-              onClick={finish}
-              disabled={loading || remaining < 0}
-              className="w-48 py-4 bg-emerald-500 text-white font-bold rounded-2xl hover:bg-emerald-600 transition disabled:opacity-40 text-base shadow-sm flex items-center justify-center"
-            >
-              {loading ? <Spinner size="sm" /> : 'Empezar'}
-            </button>
-          )}
-        </div>
+            {step === 0 && <Button variant="primary" size="lg" onClick={goToExpenses} disabled={!incomeNum} style={{ minWidth: 140 }}>Continuar →</Button>}
+            {step === 1 && <Button variant="primary" size="lg" onClick={goToDistribution} style={{ minWidth: 140 }}>Continuar →</Button>}
+            {step === 2 && (
+              <Button variant="primary" size="lg" onClick={finish} disabled={loading || remaining < 0} style={{ minWidth: 140 }}>
+                {loading ? <Spinner size="sm" /> : 'Empezar →'}
+              </Button>
+            )}
+          </div>
+        </Card>
       </div>
     </div>
   )
