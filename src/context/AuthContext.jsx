@@ -3,8 +3,7 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   signOut,
   updateProfile,
 } from 'firebase/auth'
@@ -19,9 +18,6 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Handle redirect result in parallel — don't block onAuthStateChanged
-    getRedirectResult(auth).catch((e) => console.error('Redirect result error:', e))
-
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         let data = await getUser(firebaseUser.uid)
@@ -73,7 +69,24 @@ export function AuthProvider({ children }) {
   }
 
   const loginWithGoogle = async () => {
-    await signInWithRedirect(auth, googleProvider)
+    const cred = await signInWithPopup(auth, googleProvider)
+    const existing = await getUser(cred.user.uid)
+    if (!existing) {
+      await createUser(cred.user.uid, {
+        name: cred.user.displayName ?? cred.user.email,
+        email: cred.user.email,
+        photoURL: cred.user.photoURL ?? null,
+        provider: 'google',
+      })
+    } else {
+      await updateUser(cred.user.uid, {
+        name: cred.user.displayName,
+        photoURL: cred.user.photoURL,
+      })
+    }
+    const data = await getUser(cred.user.uid)
+    setUserData(data)
+    return cred.user
   }
 
   const logout = () => signOut(auth)
