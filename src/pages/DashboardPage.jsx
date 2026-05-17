@@ -4,6 +4,7 @@ import { useFinance } from '../hooks/useFinance'
 import { useAuth } from '../context/AuthContext'
 import AppLayout from '../components/layout/AppLayout'
 import { formatCOP, MONTHS, currentMonth, currentYear } from '../utils/format'
+import { calculateMonthlySummary } from '../utils/financeSummary'
 import { Card, KPI, Chip, Button, ProgressBar, SectionHeader, Money, Ico, ICONS } from '../components/fo'
 import DailyWidget from '../components/dashboard/DailyWidget'
 import {
@@ -37,12 +38,13 @@ export default function DashboardPage() {
   const [year] = useState(currentYear())
   const { income, budget, transactions, loading } = useFinance(month, year)
 
-  const incomeVal = income?.income ?? 0
-  const totalSpent = transactions.reduce((s, t) => s + (t.amount || 0), 0)
-  const totalSaved = transactions.filter(t => t.accountType === 'savings').reduce((s, t) => s + t.amount, 0)
-  const available = incomeVal - totalSpent
-  const savingsRate = incomeVal > 0 ? Math.round((totalSaved / incomeVal) * 100) : 0
-  const spendRate = incomeVal > 0 ? Math.round((totalSpent / incomeVal) * 100) : 0
+  const summary = calculateMonthlySummary({ income, budget, transactions })
+  const incomeVal = summary.income
+  const totalSpent = summary.totalSpent
+  const totalSaved = summary.totalSaved
+  const available = summary.availableMoney
+  const savingsRate = summary.savingsRate
+  const spendRate = summary.spendingRate
   const hasActivity = transactions.length > 0
 
   const alerts = []
@@ -54,7 +56,14 @@ export default function DashboardPage() {
       linkLabel: 'Registrar ahora'
     })
   } else {
-    if (hasActivity && spendRate > 90) {
+    if (summary.isOverBudget) {
+      alerts.push({
+        tone: 'neg',
+        msg: `Tu saldo está en negativo por ${formatCOP(summary.overBudgetAmount)}.`,
+        linkLabel: 'Revisar gastos',
+        link: '/gastos'
+      })
+    } else if (hasActivity && spendRate > 90) {
       alerts.push({
         tone: 'neg',
         msg: `¡Atención! Has gastado el ${spendRate}% de tu presupuesto mensual.`,
@@ -98,7 +107,7 @@ export default function DashboardPage() {
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '80vh', gap: 16, color: 'var(--fo-fg-dim)' }}>
         <Spinner size="lg"/>
         <p style={{ fontSize: 13, fontWeight: 500, opacity: 0.8 }}>Sincronizando tus finanzas...</p>
-      </div
+      </div>
     </AppLayout>
   )
 

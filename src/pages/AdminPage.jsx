@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import AppLayout from '../components/layout/AppLayout'
 import { getAllUsers, updateUser } from '../lib/firestore'
@@ -9,14 +9,14 @@ export default function AdminPage() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true)
     const data = await getAllUsers()
     setUsers(data)
     setLoading(false)
-  }
+  }, [])
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [load])
 
   const toggleActive = async (uid, current) => {
     await updateUser(uid, { isActive: !current })

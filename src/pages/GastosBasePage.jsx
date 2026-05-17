@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import AppLayout from '../components/layout/AppLayout'
 import { getDefaultExpenses, addDefaultExpense, updateDefaultExpense, deleteDefaultExpense } from '../lib/firestore'
@@ -26,8 +26,13 @@ export default function GastosBasePage() {
   const [editing, setEditing]   = useState(null)
   const [form, setForm]         = useState(EMPTY)
 
-  const load = async () => { setLoading(true); setExpenses(await getDefaultExpenses(user.uid)); setLoading(false) }
-  useEffect(() => { load() }, [])
+  const load = useCallback(async () => {
+    if (!user) return
+    setLoading(true)
+    setExpenses(await getDefaultExpenses(user.uid))
+    setLoading(false)
+  }, [user])
+  useEffect(() => { load() }, [load])
 
   const openNew  = () => { setEditing(null); setForm(EMPTY); setShowForm(true) }
   const openEdit = (exp) => { setEditing(exp.id); setForm({ ...exp, amount: String(exp.amount) }); setShowForm(true) }

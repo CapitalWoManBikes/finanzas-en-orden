@@ -4,7 +4,7 @@ import {
   getMonthlyIncome,
   getMonthlyBudget,
   getTransactions,
-  setMonthlySummary,
+  syncMonthlySummary,
 } from '../lib/firestore'
 import { currentMonth, currentYear } from '../utils/format'
 
@@ -28,19 +28,7 @@ export function useFinance(month = currentMonth(), year = currentYear()) {
       setBudget(bud)
       setTransactions(txs)
 
-      if (inc) {
-        const totalSpent = txs.reduce((s, t) => s + (t.amount || 0), 0)
-        const totalSaved = txs.filter((t) => t.accountType === 'savings').reduce((s, t) => s + t.amount, 0)
-        await setMonthlySummary(user.uid, month, year, {
-          income: inc.income,
-          totalSpent,
-          totalSaved,
-          availableMoney: inc.income - totalSpent,
-          savingsRate: inc.income > 0 ? Math.round((totalSaved / inc.income) * 100) : 0,
-          fixedExpensesSpent: txs.filter((t) => t.accountType === 'fixedExpenses').reduce((s, t) => s + t.amount, 0),
-          dailySpent: txs.filter((t) => t.accountType === 'dailySpending').reduce((s, t) => s + t.amount, 0),
-        })
-      }
+      if (inc) await syncMonthlySummary(user.uid, month, year)
     } catch (err) {
       console.error('useFinance error:', err)
     } finally {

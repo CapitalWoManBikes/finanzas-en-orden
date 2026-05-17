@@ -12,6 +12,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore'
 import { db } from './firebase'
+import { calculateMonthlySummary } from '../utils/financeSummary'
 
 // ── Users ──────────────────────────────────────────────
 export async function getUser(uid) {
@@ -76,6 +77,7 @@ export async function setMonthlyIncome(uid, month, year, data) {
   } else {
     await setDoc(ref, { ...data, month, year, createdAt: serverTimestamp(), updatedAt: serverTimestamp() })
   }
+  await syncMonthlySummary(uid, month, year)
 }
 
 export async function getAllMonthlyIncomes(uid) {
@@ -100,6 +102,7 @@ export async function setMonthlyBudget(uid, month, year, data) {
   } else {
     await setDoc(ref, { ...data, month, year, createdAt: serverTimestamp(), updatedAt: serverTimestamp() })
   }
+  await syncMonthlySummary(uid, month, year)
 }
 
 // ── Transactions ────────────────────────────────────────
@@ -117,22 +120,35 @@ export async function getTransactions(uid, month, year) {
 }
 
 export async function addTransaction(uid, data) {
-  return addDoc(collection(db, 'users', uid, 'transactions'), {
+  const ref = await addDoc(collection(db, 'users', uid, 'transactions'), {
     ...data,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   })
+  if (data.month && data.year) await syncMonthlySummary(uid, data.month, data.year)
+  return ref
 }
 
 export async function updateTransaction(uid, txId, data) {
+  const ref = doc(db, 'users', uid, 'transactions', txId)
+  const before = await getDoc(ref)
   await updateDoc(doc(db, 'users', uid, 'transactions', txId), {
     ...data,
     updatedAt: serverTimestamp(),
   })
+  const oldData = before.exists() ? before.data() : null
+  const monthsToSync = new Map()
+  if (oldData?.month && oldData?.year) monthsToSync.set(`${oldData.year}-${oldData.month}`, { month: oldData.month, year: oldData.year })
+  if (data.month && data.year) monthsToSync.set(`${data.year}-${data.month}`, { month: data.month, year: data.year })
+  await Promise.all([...monthsToSync.values()].map(({ month, year }) => syncMonthlySummary(uid, month, year)))
 }
 
 export async function deleteTransaction(uid, txId) {
-  await deleteDoc(doc(db, 'users', uid, 'transactions', txId))
+  const ref = doc(db, 'users', uid, 'transactions', txId)
+  const before = await getDoc(ref)
+  await deleteDoc(ref)
+  const data = before.exists() ? before.data() : null
+  if (data?.month && data?.year) await syncMonthlySummary(uid, data.month, data.year)
 }
 
 // ── Monthly Summary ─────────────────────────────────────
@@ -143,6 +159,18 @@ export async function setMonthlySummary(uid, month, year, data) {
     { ...data, month, year, updatedAt: serverTimestamp() },
     { merge: true }
   )
+}
+
+export async function syncMonthlySummary(uid, month, year) {
+  const [income, budget, transactions] = await Promise.all([
+    getMonthlyIncome(uid, month, year),
+    getMonthlyBudget(uid, month, year),
+    getTransactions(uid, month, year),
+  ])
+
+  const summary = calculateMonthlySummary({ income, budget, transactions })
+  await setMonthlySummary(uid, month, year, summary)
+  return summary
 }
 
 export async function getAllMonthlySummaries(uid) {

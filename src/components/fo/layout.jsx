@@ -1,5 +1,4 @@
-import React from 'react';
-import { Card, Chip, Button, cx } from './base.jsx';
+import { Button } from './base.jsx';
 
 /**
  * Componentes de layout — Finanzas en Orden (Dirección B)

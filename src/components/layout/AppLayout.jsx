@@ -101,7 +101,7 @@ function Sidebar({ activeId }) {
 function MobileHeader({ title }) {
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
-  const { userData, logout } = useAuth()
+  const { logout } = useAuth()
 
   return (
     <>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import AppLayout from '../components/layout/AppLayout'
 import { getMonthlyIncome, setMonthlyIncome, getAllMonthlyIncomes } from '../lib/firestore'
@@ -19,18 +19,19 @@ export default function IngresosPage() {
   const [saving, setSaving]   = useState(false)
   const [success, setSuccess] = useState(false)
 
-  const load = async () => {
+  const load = useCallback(async () => {
+    if (!user) return
     setLoading(true)
     try {
       const [inc, all] = await Promise.all([getMonthlyIncome(user.uid, month, year), getAllMonthlyIncomes(user.uid)])
-      setCurrent(inc); setForm({ income: inc?.income ?? '', notes: inc?.notes ?? }); setHistory(all)
+      setCurrent(inc); setForm({ income: inc?.income ?? '', notes: inc?.notes ?? '' }); setHistory(all)
     } catch (e) {
       console.error("Error loading income", e);
     } finally {
       setLoading(false)
     }
-  }
-  useEffect(() => { load() }, [month, year])
+  }, [user, month, year])
+  useEffect(() => { load() }, [load])
 
   const handleSave = async (e) => {
     e.preventDefault()

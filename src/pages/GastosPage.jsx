@@ -1,8 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import AppLayout from '../components/layout/AppLayout'
-import { getTransactions, addTransaction, updateTransaction, deleteTransaction } from '../lib/firestore'
+import {
+  getMonthlyBudget,
+  getMonthlyIncome,
+  getTransactions,
+  addTransaction,
+  updateTransaction,
+  deleteTransaction,
+} from '../lib/firestore'
 import { formatCOP, MONTHS, CATEGORIES, ACCOUNT_TYPES, EXPENSE_TYPES, PAYMENT_METHODS, currentMonth, currentYear } from '../utils/format'
+import { calculateMonthlySummary } from '../utils/financeSummary'
 import { Card, Button, Input, Chip, SectionHeader, Money, Ico, ICONS } from '../components/fo'
 import Spinner from '../components/ui/Spinner'
 
@@ -30,6 +38,8 @@ export default function GastosPage() {
   const { user } = useAuth()
   const [month, setMonth] = useState(currentMonth())
   const [year, setYear]   = useState(currentYear())
+  const [income, setIncome] = useState(null)
+  const [budget, setBudget] = useState(null)
   const [txs, setTxs]     = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving]   = useState(false)
@@ -38,18 +48,25 @@ export default function GastosPage() {
   const [form, setForm]         = useState(EMPTY)
   const [filter, setFilter]     = useState({ category: '', accountType: '', search: '' })
 
-  const load = async () => {
+  const load = useCallback(async () => {
+    if (!user) return
     setLoading(true);
     try {
-      const txs = await getTransactions(user.uid, month, year);
+      const [incomeData, budgetData, txs] = await Promise.all([
+        getMonthlyIncome(user.uid, month, year),
+        getMonthlyBudget(user.uid, month, year),
+        getTransactions(user.uid, month, year),
+      ]);
+      setIncome(incomeData);
+      setBudget(budgetData);
       setTxs(txs);
     } catch (e) {
       console.error("Error loading transactions", e);
     } finally {
       setLoading(false);
     }
-  }
-  useEffect(() => { load() }, [month, year])
+  }, [user, month, year])
+  useEffect(() => { load() }, [load])
 
   const openNew  = () => { setEditing(null); setForm(EMPTY); setShowForm(true) }
   const openEdit = (tx) => { setEditing(tx.id); setForm({ ...tx }); setShowForm(true) }
@@ -76,6 +93,15 @@ export default function GastosPage() {
     (!filter.search || t.name.toLowerCase().includes(filter.search.toLowerCase()))
   )
   const total = filtered.reduce((s, t) => s + t.amount, 0)
+  const summary = calculateMonthlySummary({ income, budget, transactions: txs })
+  const balanceTone = summary.availableMoney < 0 ? 'var(--fo-neg)' : summary.spendingRate > 85 ? 'var(--fo-warn)' : 'var(--fo-pos)'
+  const balanceMsg = !income
+    ? 'Registra un ingreso para activar el saldo del mes.'
+    : summary.availableMoney < 0
+      ? `Te pasaste por ${formatCOP(summary.overBudgetAmount)}.`
+      : summary.spendingRate > 85
+        ? 'Estás cerca de gastar todo el ingreso.'
+        : 'Saldo al día.'
 
   return (
     <AppLayout>
@@ -84,15 +110,42 @@ export default function GastosPage() {
           action={<Button onClick={openNew} icon={<Ico d={ICONS.plus} size={14}/>}>Nuevo gasto</Button>}
         />
 
+        {/* Saldo tipo cuenta */}
+        <Card style={{ marginBottom: 16, borderColor: summary.availableMoney < 0 ? 'var(--fo-neg)' : undefined }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <div>
+              <p style={{ margin: 0, fontSize: 11, color: 'var(--fo-fg-dim)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                Saldo disponible
+              </p>
+              <p className="fo-num" style={{ margin: '6px 0 0', fontSize: 34, lineHeight: 1, color: balanceTone }}>
+                {formatCOP(summary.availableMoney)}
+              </p>
+              <p style={{ margin: '8px 0 0', fontSize: 12, color: balanceTone, fontWeight: 600 }}>
+                {balanceMsg}
+              </p>
+            </div>
+            <div style={{ minWidth: 210, display: 'grid', gap: 8 }}>
+              <BalanceLine label="Ingreso" value={summary.income} tone="var(--fo-pos)" sign="+" />
+              <BalanceLine label="Gastado / movido" value={summary.totalSpent} tone="var(--fo-neg)" sign="-" />
+              <div style={{ height: 1, background: 'var(--fo-line)' }} />
+              <BalanceLine label={`${summary.spendingRate}% usado`} value={summary.availableMoney} tone={balanceTone} />
+            </div>
+          </div>
+        </Card>
+
         {/* Resumen por cuenta */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 16 }}>
           {ACCOUNT_TYPES.map(({ value, label }) => {
             const amt = filtered.filter(t => t.accountType === value).reduce((s, t) => s + t.amount, 0)
             const a = ACCT[value]
+            const accountBalance = summary.accountBalances[value] ?? 0
             return (
               <Card key={value}>
                 <Chip tone={a.tone} style={{ marginBottom: 8 }}>{label}</Chip>
                 <Money value={amt} style={{ fontSize: 18, display: 'block', marginTop: 6 }}/>
+                <p style={{ margin: '6px 0 0', fontSize: 11, color: accountBalance < 0 ? 'var(--fo-neg)' : 'var(--fo-fg-dim)' }}>
+                  {accountBalance < 0 ? 'Exceso' : 'Queda'}: {formatCOP(Math.abs(accountBalance))}
+                </p>
               </Card>
             )
           })}
@@ -145,7 +198,7 @@ export default function GastosPage() {
               <p style={{ margin: '10px 0 0', fontSize: 13 }}>Sin gastos para mostrar</p>
             </div>
           ) : filtered.map((t, i) => (
-            <div style={{
+            <div key={t.id} style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               padding: '13px 20px', gap: 12,
               borderBottom: i < filtered.length - 1 ? '1px solid var(--fo-line-soft)' : 'none',
@@ -233,5 +286,16 @@ export default function GastosPage() {
         </div>
       )}
     </AppLayout>
+  )
+}
+
+function BalanceLine({ label, value, tone, sign }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center' }}>
+      <span style={{ fontSize: 12, color: 'var(--fo-fg-dim)' }}>{label}</span>
+      <span className="fo-num" style={{ fontSize: 13, fontWeight: 700, color: tone }}>
+        {sign ? `${sign} ` : ''}{formatCOP(value)}
+      </span>
+    </div>
   )
 }
