@@ -65,7 +65,7 @@ export default function DailyWidget({ income, budget, defaultExpenses, transacti
               {formatCOP(canSpendToday)}
             </p>
             <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--fo-fg-dim)' }}>
-              Recomendado: {formatCOP(d.dailyAllowance)} diarios hasta el proximo pago.
+              Hoy puedes gastar maximo {formatCOP(d.dailyAllowance)} sin pasarte.
             </p>
           </div>
           <span style={{
@@ -86,14 +86,14 @@ export default function DailyWidget({ income, budget, defaultExpenses, transacti
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', borderBottom: '1px solid var(--fo-line-soft)' }} className="daily-kpis">
         <style>{`@media(max-width:640px){.daily-kpis{grid-template-columns:1fr!important}.daily-kpis>div{border-left:none!important;border-top:1px solid var(--fo-line-soft)}}`}</style>
-        <KPICell label="Gastado hoy" value={formatCOP(d.todaySpent)} sub={`${Math.round(todayPct)}% del dia`} />
-        <KPICell label="Presupuesto semanal" value={formatCOP(d.weeklyAllowance)} sub="recomendado" border />
-        <KPICell label="Proximo pago" value={`${d.daysLeft} dias`} sub={d.nextPaymentDate} border />
+        <KPICell label="Presupuesto disponible" value={formatCOP(d.plannedAvailableMoney)} sub="mes actual" />
+        <KPICell label="Has gastado" value={formatCOP(d.monthlyDailySpent)} sub="gasto diario del mes" border />
+        <KPICell label="Te quedan" value={formatCOP(d.remaining)} sub={`${d.monthDaysLeft} dias del mes`} border />
       </div>
 
       <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--fo-line-soft)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, gap: 12 }}>
-          <span style={{ fontSize: 11, color: 'var(--fo-fg-dim)', fontWeight: 600 }}>Uso del presupuesto diario</span>
+          <span style={{ fontSize: 11, color: 'var(--fo-fg-dim)', fontWeight: 600 }}>Gasto de hoy vs recomendado</span>
           <span style={{ fontSize: 11, color: 'var(--fo-fg-muted)', fontWeight: 700, fontFamily: 'var(--fo-font-num)' }}>
             {formatCOP(d.todaySpent)} / {formatCOP(d.dailyAllowance)}
           </span>
@@ -111,16 +111,13 @@ export default function DailyWidget({ income, budget, defaultExpenses, transacti
 
       <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--fo-line-soft)' }}>
         <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 700, color: 'var(--fo-fg-dim)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-          Calculo del periodo
+          Resumen rapido
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <FlowRow label="Ingreso registrado" value={d.incomeVal} color="var(--fo-pos)" sign="+" />
-          <FlowRow label="Gastos fijos previstos" value={d.fixedExpensesRegistered} color="var(--fo-accent-fg)" sign="-" />
-          <FlowRow label="Meta de ahorro" value={d.savingsGoal} color="oklch(0.66 0.20 290)" sign="-" />
-          <FlowRow label="Disponible para gastar" value={d.plannedAvailableMoney} color="oklch(0.78 0.17 85)" sign="=" />
-          <FlowRow label="Gasto diario usado" value={d.monthlyDailySpent} color="var(--fo-neg)" sign="-" />
+          <FlowRow label="Tu presupuesto disponible es de" value={d.plannedAvailableMoney} color="oklch(0.78 0.17 85)" sign="" />
+          <FlowRow label="Has gastado" value={d.monthlyDailySpent} color="var(--fo-neg)" sign="-" />
           <div style={{ borderTop: '1px solid var(--fo-line-soft)', paddingTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--fo-fg)' }}>Saldo real</span>
+            <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--fo-fg)' }}>Te quedan para este mes</span>
             <span style={{ fontSize: 14, fontWeight: 800, color: d.availableMoney < 0 ? 'var(--fo-neg)' : 'var(--fo-pos)', fontFamily: 'var(--fo-font-num)' }}>
               {formatCOP(d.availableMoney)}
             </span>

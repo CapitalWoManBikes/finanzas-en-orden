@@ -34,6 +34,14 @@ export function formatNextPaymentDate(config) {
   return next.toLocaleDateString('es-CO', { day: 'numeric', month: 'long' })
 }
 
+export function getDaysLeftInMonth() {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+  lastDay.setHours(0, 0, 0, 0)
+  return Math.max(Math.round((lastDay - today) / 86400000) + 1, 1)
+}
+
 export function calcDailyData({ income, budget, transactions = [], paymentConfig, defaultExpenses }) {
   const todayStr = new Date().toISOString().split('T')[0]
   const summary = calculateMonthlySummary({ income, budget, transactions, defaultExpenses })
@@ -50,8 +58,9 @@ export function calcDailyData({ income, budget, transactions = [], paymentConfig
     .reduce((s, t) => s + (t.amount || 0), 0)
 
   const daysLeft = getDaysUntilPayment(paymentConfig)
+  const monthDaysLeft = getDaysLeftInMonth()
   const remaining = Math.max(summary.dailyBudgetRemaining, 0)
-  const dailyAllowance = daysLeft > 0 ? Math.round(remaining / daysLeft) : 0
+  const dailyAllowance = monthDaysLeft > 0 ? Math.round(remaining / monthDaysLeft) : 0
   const weeklyAllowance = Math.round(remaining / Math.max(daysLeft / 7, 1))
   const availableMoney = summary.availableMoney
 
@@ -66,6 +75,7 @@ export function calcDailyData({ income, budget, transactions = [], paymentConfig
     weeklyAllowance,
     todaySpent,
     daysLeft,
+    monthDaysLeft,
     nextPaymentDate: formatNextPaymentDate(paymentConfig),
     remaining,
     availableMoney,
